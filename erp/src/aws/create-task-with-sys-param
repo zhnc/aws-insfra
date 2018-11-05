@@ -1,0 +1,73 @@
+aws ecs register-task-definition --profile kingdee --family Web-cpy-04 --container-definitions '[
+            {
+                "name": "Web-cpy-04",
+                "image": "762849814821.dkr.ecr.cn-northwest-1.amazonaws.com.cn/perf/web:0821",
+                "cpu": 1024,
+                "memoryReservation": 2048,
+                "portMappings": [
+                    {
+                        "containerPort": 8080,
+                        "hostPort": 0,
+                        "protocol": "tcp"
+                    }
+                ],
+                "essential": true,
+                "environment": [
+                    {
+                        "name": "ENABLE_JETTY",
+                        "value": "true"
+                    },
+                    {
+                        "name": "configUrl",
+                        "value": "192.168.2.103:2181"
+                    },
+                    {
+                        "name": "BIZLIBS",
+                        "value": "fi-er-web,ssc-task-web,scm-pur-web"
+                    },
+                    {
+                        "name": "appName",
+                        "value": "web"
+                    },
+                    {
+                        "name": "clusterName",
+                        "value": "AWSPerfTest"
+                    },
+                    {
+                        "name": "WEB_PORT",
+                        "value": "8080"
+                    },
+                    {
+                        "name": "appSplit",
+                        "value": "true"
+                    },
+                    {
+                        "name": "APPSTORE_URL",
+                        "value": "http://192.168.2.103:88/apppackage/"
+                    },
+                    {
+                        "name": "BOSLIBS",
+                        "value": "bos-corelib-web,bos-core-web,bos-qing-web"
+                    },
+                    {
+                        "name": "JVM_OPTS",
+                        "value": "-server -Xms1524m -Xmx1524m -XX:MetaspaceSize=256m -XX:+DisableExplicitGC -Duser.timezone=GMT+8 -Dfile.encoding=UTF-8 -XX:+UseG1GC  -XX:+PrintGCDateStamps -XX:+HeapDumpOnOutOfMemoryError -XX:+PrintGCDetails -Xloggc:/web/logs/gc.log"
+                    }
+                ],
+                "mountPoints": [],
+                "volumesFrom": [],
+                "systemControls": [
+                  {
+                    "namespace": "net.core.somaxconn",
+                    "value": "4096"
+                  },{
+                      "namespace":"net.ipv4.tcp_max_syn_backlog",
+                      "value":"8192"
+                  },{
+                      "namespace":"net.ipv4.ip_local_port_range",
+                      "value":"1024 65535"
+                  }
+                ]
+            }
+        ]'
+

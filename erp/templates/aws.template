@@ -1,0 +1,591 @@
+Description: Example Server
+Mappings:
+  AMIMap:
+    cn-northwest-1:
+      AMI: ami-09478b31d8343756c
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Required parameters.
+        Parameters:
+          - DBPassword
+          - KeyPair
+      - Label:
+          default: 'Advanced: Database and instance'
+        Parameters:
+          - DBInstanceType
+          - DBStorageSize
+          - DBBackupRetention
+          - EC2InstanceType
+    ParameterLabels:
+      DBBackupRetention:
+        default: How long to keep backups (advanced)
+      DBInstanceType:
+        default: Database instance class (advanced)
+      DBPassword:
+        default: Choose a database password
+      DBStorageSize:
+        default: Database storage (advanced)
+      EC2InstanceType:
+        default: Instance class (advanced)
+      KeyPair:
+        default: Choose a key pair
+Parameters:
+  DBBackupRetention:
+    Default: '7'
+    Description: Number of days to store automated daily database backups for.
+    Type: Number
+  DBInstanceType:
+    AllowedValues:
+      - db.t2.micro
+      - db.t2.small
+      - db.t2.medium
+      - db.t2.large
+      - db.m4.large
+      - db.m4.xlarge
+      - db.m4.2xlarge
+      - db.m4.4xlarge
+      - db.m4.10xlarge
+    Default: db.t2.micro
+    Description: Instance class for your database. Defines amount of CPU and Memory.
+    Type: String
+  DBPassword:
+    AllowedPattern: ^(?=.*[A-Z])(?=.*[0-9])(?=.*[a-z]).{8,}$
+    ConstraintDescription: 'Database password must be at least 8 characters, with
+      1 small letter, 1 large letter and 1 number. '
+    Description: 'Choose a secure password for your database with at least 1 small
+      letter, 1 large letter, 1 number, minimal length: 8 characters.'
+    MinLength: 8
+    NoEcho: true
+    Type: String
+  EC2InstanceType:
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - t2.xlarge
+      - t2.2xlarge
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - m4.16xlarge
+    Default: t2.micro
+    Description: Instance class for your server. Defines amount of CPU and Memory.
+    Type: String
+  ECSImageId:
+    Default: ami-087cfa08153018a91
+    Type: String
+  KeyPair:
+    Description: Key pair to use to login to your instance
+    Type: AWS::EC2::KeyPair::KeyName
+  WebServerPort:
+    Default: '8888'
+    Description: TCP/IP port of the web server
+    Type: String
+Resources:
+  ApplicationElasticLB:
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Name: ApplicationElasticLB
+      Scheme: internal
+      SecurityGroups:
+        - !GetAtt 'LoadBalancerSecurityGroup.GroupId'
+      Subnets:
+        - !Ref 'PublicSubnet1'
+        - !Ref 'PublicSubnet2'
+        - !Ref 'PublicSubnet3'
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+  ContainerInstances:
+    DependsOn: ECSCluster
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+          commands:
+            '01_add_instance_to_cluster':
+              command: !Join
+                - ''
+                - - "#!/bin/bash\n"
+                  - echo ECS_CLUSTER=
+                  - !Ref 'ECSCluster'
+                  - ' >> /etc/ecs/ecs.config'
+          files:
+            /etc/cfn/cfn-hup.conf:
+              content: !Join
+                - ''
+                - - "[main]\n"
+                  - stack=
+                  - !Ref 'AWS::StackId'
+                  - "\n"
+                  - region=
+                  - !Ref 'AWS::Region'
+                  - "\n"
+              group: root
+              mode: '000400'
+              owner: root
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Join
+                - ''
+                - - "[cfn-auto-reloader-hook]\n"
+                  - "triggers=post.update\n"
+                  - "path=Resources.ContainerInstances.Metadata.AWS::CloudFormation::Init\n"
+                  - 'action=/opt/aws/bin/cfn-init -v '
+                  - '--stack '
+                  - !Ref 'AWS::StackName'
+                  - ' --resource ContainerInstances '
+                  - ' --region '
+                  - !Ref 'AWS::Region'
+                  - "\n"
+                  - "runas=root\n"
+              group: root
+              mode: '000400'
+              owner: root
+          services:
+            cfn-hup:
+              enabled: 'true'
+              ensureRunning: 'true'
+              files:
+                - /etc/cfn/cfn-hup.conf
+                - /etc/cfn/hooks.d/cfn-auto-reloader.conf
+    Properties:
+      AssociatePublicIpAddress: 'true'
+      IamInstanceProfile: !Ref 'EC2InstanceProfile'
+      ImageId: !Ref 'ECSImageId'
+      InstanceType: !Ref 'EC2InstanceType'
+      KeyName: !Ref 'KeyPair'
+      SecurityGroups:
+        - !Ref 'InstanceSecurityGroup'
+      UserData: !Base64
+        Fn::Join:
+          - ''
+          - - "#!/bin/bash -xe\n"
+            - "yum install -y aws-cfn-bootstrap\n"
+            - '/opt/aws/bin/cfn-init -v '
+            - '         --stack '
+            - !Ref 'AWS::StackName'
+            - '         --resource ContainerInstances '
+            - '         --region '
+            - !Ref 'AWS::Region'
+            - "\n"
+            - '/opt/aws/bin/cfn-signal -e $? '
+            - '         --stack '
+            - !Ref 'AWS::StackName'
+            - '         --resource ECSAutoScalingGroup '
+            - '         --region '
+            - !Ref 'AWS::Region'
+            - "\n"
+    Type: AWS::AutoScaling::LaunchConfiguration
+  EC2InstanceProfile:
+    DependsOn: EcsClusterRole
+    Properties:
+      Path: /
+      Roles:
+        - !Ref 'EcsClusterRole'
+    Type: AWS::IAM::InstanceProfile
+  ECSAutoScalingGroup:
+    Properties:
+      AvailabilityZones:
+        - !Select
+          - 0
+          - !GetAZs ''
+        - !Select
+          - 1
+          - !GetAZs ''
+        - !Select
+          - 2
+          - !GetAZs ''
+      DesiredCapacity: '1'
+      LaunchConfigurationName: !Ref 'ContainerInstances'
+      MaxSize: '1'
+      MinSize: '1'
+      VPCZoneIdentifier:
+        - !Ref 'PublicSubnet1'
+        - !Ref 'PublicSubnet2'
+        - !Ref 'PublicSubnet3'
+    Type: AWS::AutoScaling::AutoScalingGroup
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+  EcsClusterRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com.cn
+        Version: '2012-10-17'
+      Path: /
+    Type: AWS::IAM::Role
+  InstanceSecurityGroup:
+    Properties:
+      GroupDescription: Instance security group
+      SecurityGroupEgress:
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '-1'
+          IpProtocol: '-1'
+          ToPort: '-1'
+      SecurityGroupIngress:
+        - FromPort: '-1'
+          IpProtocol: '-1'
+          SourceSecurityGroupId: !Ref 'LoadBalancerSecurityGroup'
+          ToPort: '-1'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - ' instance security group'
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::SecurityGroup
+  InternetGateway:
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -internet-gateway
+    Type: AWS::EC2::InternetGateway
+  InternetGatewayAttachment:
+    Properties:
+      InternetGatewayId: !Ref 'InternetGateway'
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::VPCGatewayAttachment
+  LoadBalancerSecurityGroup:
+    Properties:
+      GroupDescription: Loadbalancer security group
+      SecurityGroupEgress:
+        - CidrIp: '0.0.0.0/0'
+          FromPort: 0
+          IpProtocol: '-1'
+          ToPort: 65535
+      SecurityGroupIngress:
+        - CidrIp: '0.0.0.0/0'
+          FromPort: 80
+          IpProtocol: tcp
+          ToPort: 80
+        - CidrIp: '0.0.0.0/0'
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - ' load balancer security group'
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::SecurityGroup
+  MyRepository:
+    Properties:
+      RepositoryName: test-repository
+    Type: AWS::ECR::Repository
+  PolicyCloudwatch:
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - cloudwatch:*
+            Effect: Allow
+            Resource: '*'
+        Version: '2012-10-17'
+      PolicyName: Cloudwatch
+      Roles:
+        - !Ref 'EcsClusterRole'
+    Type: AWS::IAM::Policy
+  PolicyEcr:
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - ecr:GetAuthorizationToken
+            Effect: Allow
+            Resource:
+              - '*'
+          - Action:
+              - ecr:GetDownloadUrlForLayer
+              - ecr:BatchGetImage
+              - ecr:BatchCheckLayerAvailability
+            Effect: Allow
+            Resource:
+              - '*'
+            Sid: AllowPull
+        Version: '2012-10-17'
+      PolicyName: EcrPolicy
+      Roles:
+        - !Ref 'EcsClusterRole'
+    Type: AWS::IAM::Policy
+  PolicyEcs:
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - ecs:CreateCluster
+              - ecs:RegisterContainerInstance
+              - ecs:DeregisterContainerInstance
+              - ecs:DiscoverPollEndpoint
+              - ecs:Submit*
+              - ecs:Poll
+              - ecs:StartTelemetrySession
+            Effect: Allow
+            Resource: '*'
+        Version: '2012-10-17'
+      PolicyName: EcsPolicy
+      Roles:
+        - !Ref 'EcsClusterRole'
+    Type: AWS::IAM::Policy
+  PrivateNetworkACL:
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -private-nacl
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::NetworkAcl
+  PrivateNetworkAclEntryIn:
+    Properties:
+      CidrBlock: 172.1.0.0/16
+      Egress: 'false'
+      NetworkAclId: !Ref 'PrivateNetworkACL'
+      Protocol: -1
+      RuleAction: allow
+      RuleNumber: 200
+    Type: AWS::EC2::NetworkAclEntry
+  PrivateNetworkAclEntryOut:
+    Properties:
+      CidrBlock: 172.1.0.0/16
+      Egress: 'true'
+      NetworkAclId: !Ref 'PrivateNetworkACL'
+      Protocol: -1
+      RuleAction: allow
+      RuleNumber: 200
+    Type: AWS::EC2::NetworkAclEntry
+  PrivateRouteTable:
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - private-route-table
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::RouteTable
+  PrivateSubnet1:
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      CidrBlock: 172.1.1.0/24
+      MapPublicIpOnLaunch: 'false'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -private-subnet-1
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PrivateSubnet1NetworkAclAssociation:
+    Properties:
+      NetworkAclId: !Ref 'PrivateNetworkACL'
+      SubnetId: !Ref 'PrivateSubnet1'
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+  PrivateSubnet1RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateRouteTable'
+      SubnetId: !Ref 'PrivateSubnet1'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PrivateSubnet2:
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ''
+      CidrBlock: 172.1.2.0/24
+      MapPublicIpOnLaunch: 'false'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -private-subnet-2
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PrivateSubnet2NetworkAclAssociation:
+    Properties:
+      NetworkAclId: !Ref 'PrivateNetworkACL'
+      SubnetId: !Ref 'PrivateSubnet2'
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+  PrivateSubnet2RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateRouteTable'
+      SubnetId: !Ref 'PrivateSubnet2'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PrivateSubnet3:
+    Properties:
+      AvailabilityZone: !Select
+        - 2
+        - !GetAZs ''
+      CidrBlock: 172.1.3.0/24
+      MapPublicIpOnLaunch: 'false'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -private-subnet-3
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PrivateSubnet3RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateRouteTable'
+      SubnetId: !Ref 'PrivateSubnet3'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PublicRouteTable:
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - public-route-table
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::RouteTable
+  PublicSubnet1:
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      CidrBlock: 172.1.128.0/24
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -public-subnet-1
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PublicSubnet1RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PublicRouteTable'
+      SubnetId: !Ref 'PublicSubnet1'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PublicSubnet2:
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ''
+      CidrBlock: 172.1.129.0/24
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -public-subnet-2
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PublicSubnet2RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PublicRouteTable'
+      SubnetId: !Ref 'PublicSubnet2'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PublicSubnet3:
+    Properties:
+      AvailabilityZone: !Select
+        - 2
+        - !GetAZs ''
+      CidrBlock: 172.1.130.0/24
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -public-subnet-3
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PublicSubnet3RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PublicRouteTable'
+      SubnetId: !Ref 'PublicSubnet3'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  RouteToInternet:
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref 'InternetGateway'
+      RouteTableId: !Ref 'PublicRouteTable'
+    Type: AWS::EC2::Route
+  TargetGroupWeb:
+    Properties:
+      HealthCheckIntervalSeconds: '30'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: '10'
+      HealthyThresholdCount: '4'
+      Matcher:
+        HttpCode: '200'
+      Name: WebTarget
+      Port: !Ref 'WebServerPort'
+      Protocol: HTTP
+      UnhealthyThresholdCount: '3'
+      VpcId: !Ref 'VPC'
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+  TaskDefinition:
+    Properties:
+      ContainerDefinitions:
+        - Essential: 'true'
+          Image: !Join
+            - .
+            - - !Ref 'AWS::AccountId'
+              - dkr.ecr
+              - !Ref 'AWS::Region'
+              - !Join
+                - /
+                - - amazonaws.com
+                  - !Ref 'MyRepository'
+          Name: nginx
+          PortMappings:
+            - ContainerPort: 80
+      Cpu: '256'
+      Memory: '512'
+      RequiresCompatibilities:
+        - EC2
+    Type: AWS::ECS::TaskDefinition
+  VPC:
+    Properties:
+      CidrBlock: 172.1.0.0/16
+      EnableDnsHostnames: 'true'
+      EnableDnsSupport: 'true'
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
+    Type: AWS::EC2::VPC
+  VPCS3Endpoint:
+    Properties:
+      RouteTableIds:
+        - !Ref 'PublicRouteTable'
+        - !Ref 'PrivateRouteTable'
+      ServiceName: !Join
+        - ''
+        - - com.amazonaws.
+          - !Ref 'AWS::Region'
+          - .s3
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::VPCEndpoint
+  instanceSecurityGroupIngressRule:
+    DependsOn: InstanceSecurityGroup
+    Properties:
+      FromPort: '-1'
+      GroupId: !Ref 'InstanceSecurityGroup'
+      IpProtocol: '-1'
+      SourceSecurityGroupId: !Ref 'InstanceSecurityGroup'
+      ToPort: '-1'
+    Type: AWS::EC2::SecurityGroupIngress
+

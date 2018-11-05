@@ -1,0 +1,37 @@
+{
+    
+            "serviceName": "web-nlb",
+            "taskDefinition": "arn:aws-cn:ecs:cn-northwest-1:762849814821:task-definition/Web:11",
+            "loadBalancers": [
+                {
+                    "targetGroupArn": "arn:aws-cn:elasticloadbalancing:cn-northwest-1:762849814821:targetgroup/nlb-web-target/3b5f2f745e81be52",
+                    "containerName": "Web",
+                    "containerPort": 8080
+                }
+            ],
+            "desiredCount": 0,
+   
+            "launchType": "EC2",
+           
+            "deploymentConfiguration": {
+                "maximumPercent": 200,
+                "minimumHealthyPercent": 100
+            },
+            
+            "role": "ecsServiceRole",
+            
+            "placementConstraints": [],
+            "placementStrategy": [
+                {
+                    "type": "spread",
+                    "field": "attribute:ecs.availability-zone"
+                },
+                {
+                    "type": "spread",
+                    "field": "instanceId"
+                }
+            ],
+            "schedulingStrategy": "REPLICA"
+        
+    
+}
