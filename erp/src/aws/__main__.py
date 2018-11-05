@@ -63,9 +63,9 @@ def main():
     for res in elb.values():
         template.add_resource(res)
 
-    ecs = ECS(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
-    for res in ecs.values():
-        template.add_resource(res)
+    # ecs = ECS(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
+    # for res in ecs.values():
+    #     template.add_resource(res)
 
     # db = Database(parameters=parameters, vpc=vpc, loadbalancer=elb)
     # for res in db.values():

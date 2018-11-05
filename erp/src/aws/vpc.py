@@ -1,4 +1,4 @@
-from troposphere import GetAZs, Join, Ref, Select, Tags
+from troposphere import GetAZs, Join, Ref, Select, Tags, GetAtt
 from troposphere import ec2
 
 from magicdict import MagicDict
@@ -50,9 +50,11 @@ class VPC(MagicDict):
 
         self.vpc_s3_endpoint = ec2.VPCEndpoint(
             "VPCS3Endpoint",
-            ServiceName=Join("", ["com.amazonaws.", Ref("AWS::Region"), ".s3"]),
+            ServiceName=Join(
+                "", ["com.amazonaws.", Ref("AWS::Region"), ".s3"]),
             VpcId=Ref(self.vpc),
-            RouteTableIds=[Ref(self.public_route_table), Ref(self.private_route_table)],
+            RouteTableIds=[Ref(self.public_route_table),
+                           Ref(self.private_route_table)],
         )
 
         self.route_to_internet = ec2.Route(
@@ -97,23 +99,6 @@ class VPC(MagicDict):
             "PrivateSubnet2RouteTableAssociation",
             RouteTableId=Ref(self.private_route_table),
             SubnetId=Ref(self.private_subnet_2),
-        )
-
-        self.private_subnet_3 = ec2.Subnet(
-            "PrivateSubnet3",
-            AvailabilityZone=Select(2, GetAZs()),
-            CidrBlock="172.1.3.0/24",
-            MapPublicIpOnLaunch=False,
-            Tags=Tags(
-                Name=Join("", [Ref("AWS::StackName"), "-private-subnet-3"]),
-            ),
-            VpcId=Ref(self.vpc),
-        )
-
-        self.private_subnet_3_route_table_association = ec2.SubnetRouteTableAssociation(
-            "PrivateSubnet3RouteTableAssociation",
-            RouteTableId=Ref(self.private_route_table),
-            SubnetId=Ref(self.private_subnet_3),
         )
 
         self.private_network_aCL = ec2.NetworkAcl(
@@ -192,19 +177,22 @@ class VPC(MagicDict):
             SubnetId=Ref(self.public_subnet_2),
         )
 
-        self.public_subnet_3 = ec2.Subnet(
-            "PublicSubnet3",
-            AvailabilityZone=Select(2, GetAZs()),
-            CidrBlock="172.1.130.0/24",
-            MapPublicIpOnLaunch=True,
-            Tags=Tags(
-                Name=Join("", [Ref("AWS::StackName"), "-public-subnet-3"]),
-            ),
-            VpcId=Ref(self.vpc),
+        self.nat_eip_1 = ec2.EIP(
+            'NatEip',
+            Domain="vpc",
         )
 
-        self.public_subnet_3_route_table_association = ec2.SubnetRouteTableAssociation(
-            "PublicSubnet3RouteTableAssociation",
-            RouteTableId=Ref(self.public_route_table),
-            SubnetId=Ref(self.public_subnet_3),
+        self.nat_1 = ec2.NatGateway(
+            'Nat',
+            # AllocationId=Ref(self.nat_eip_1),
+            AllocationId=GetAtt(self.nat_eip_1, 'AllocationId'),
+            SubnetId=Ref(self.public_subnet_1),
+            DependsOn=self.nat_eip_1,
+        )
+
+        self.nat_route_1=ec2.Route(
+            'NatRoute',
+            RouteTableId=Ref(self.private_route_table),
+            DestinationCidrBlock='0.0.0.0/0',
+            NatGatewayId=Ref(self.nat_1),
         )

@@ -13,10 +13,37 @@ class SecurityGroup(MagicDict):
         """
         super(SecurityGroup, self).__init__()
 
-        # web
-        self.load_balancer_security_group = ec2.SecurityGroup(
-            "LoadBalancerSecurityGroup",
-            GroupDescription="Loadbalancer security group",
+        # ops
+        self.ops = ec2.SecurityGroup(
+            "OpsSecurityGroup",
+            GroupDescription="Ops security group",
+            SecurityGroupIngress=[
+                ec2.SecurityGroupRule(
+                    IpProtocol="tcp",
+                    FromPort=3389,
+                    ToPort=3389,
+                    CidrIp="0.0.0.0/0",
+                )
+            ],
+            SecurityGroupEgress=[
+                ec2.SecurityGroupRule(
+                    CidrIp="0.0.0.0/0",
+                    FromPort=0,
+                    IpProtocol="-1",
+                    ToPort=65535
+                )
+            ],
+            VpcId=Ref(vpc.vpc),
+            Tags=Tags(
+                Name=Join("", [Ref("AWS::StackName"),
+                               " ops security group"]),
+            ),
+        )
+
+        # web load balance
+        self.web_public_security_group = ec2.SecurityGroup(
+            "WebPublicLoadBalanceSecurityGroup",
+            GroupDescription="web public load balance security group",
             SecurityGroupIngress=[
                 ec2.SecurityGroupRule(
                     IpProtocol="tcp",
@@ -42,14 +69,14 @@ class SecurityGroup(MagicDict):
             VpcId=Ref(vpc.vpc),
             Tags=Tags(
                 Name=Join("", [Ref("AWS::StackName"),
-                               " load balancer security group"]),
+                               " web public load balance security group"]),
             ),
         )
 
-        # EC2 instance security group
-        self.instance_security_group = ec2.SecurityGroup(
-            "InstanceSecurityGroup",
-            GroupDescription="Instance security group",
+        # Web EC2 instance security group
+        self.web_instance_security_group = ec2.SecurityGroup(
+            "WebInstanceSecurityGroup",
+            GroupDescription="Web Instance security group",
             SecurityGroupIngress=[
                 ec2.SecurityGroupRule(
                     IpProtocol="-1",
@@ -57,7 +84,13 @@ class SecurityGroup(MagicDict):
                     ToPort="-1",
                     # SourceSecurityGroupId=GetAtt(
                     #     self.load_balancer_security_group, "GroupId"),
-                    SourceSecurityGroupId=Ref(self.load_balancer_security_group)
+                    SourceSecurityGroupId=Ref(self.web_public_security_group)
+                ),
+                ec2.SecurityGroupRule(
+                    IpProtocol="-1",
+                    FromPort="-1",
+                    ToPort="-1",
+                    SourceSecurityGroupId=Ref(self.ops),
                 )
             ],
             SecurityGroupEgress=[
@@ -71,16 +104,244 @@ class SecurityGroup(MagicDict):
             VpcId=Ref(vpc.vpc),
             Tags=Tags(
                 Name=Join("", [Ref("AWS::StackName"),
-                               " instance security group"]),
+                               " web instance security group"]),
             ),
         )
 
-        self.instance_security_groupIngressRule = ec2.SecurityGroupIngress(
+        self.web_instance_security_groupIngressRule = ec2.SecurityGroupIngress(
             "instanceSecurityGroupIngressRule",
-            GroupId=Ref(self.instance_security_group),
+            GroupId=Ref(self.web_instance_security_group),
             IpProtocol='-1',
-            SourceSecurityGroupId=Ref(self.instance_security_group),
+            SourceSecurityGroupId=Ref(self.web_instance_security_group),
             FromPort='-1',
             ToPort='-1',
-            DependsOn=self.instance_security_group
+            DependsOn=self.web_instance_security_group
         )
+
+        # web db security group
+        self.web_db_security_group = ec2.SecurityGroup(
+            "WebDBSecurityGroup",
+            GroupDescription="Web DB security group",
+            SecurityGroupIngress=[
+                ec2.SecurityGroupRule(
+                    IpProtocol="tcp",
+                    FromPort="3306",
+                    ToPort="3306",
+                    SourceSecurityGroupId=Ref(self.web_instance_security_group)
+                ),
+                ec2.SecurityGroupRule(
+                    IpProtocol="-1",
+                    FromPort="-1",
+                    ToPort="-1",
+                    SourceSecurityGroupId=Ref(self.ops),
+                )
+            ],
+            SecurityGroupEgress=[
+                ec2.SecurityGroupRule(
+                    IpProtocol="-1",
+                    FromPort="-1",
+                    ToPort="-1",
+                    CidrIp="0.0.0.0/0",
+                ),
+            ],
+            VpcId=Ref(vpc.vpc),
+            Tags=Tags(
+                Name=Join("", [Ref("AWS::StackName"),
+                               " web DB security group"]),
+            ),
+        )
+
+        #app web private load balance
+
+        self.app_web_private_lb_security_group = ec2.SecurityGroup(
+            "AppWebPrivateLoadBalanceSecurityGroup",
+            GroupDescription="App web private load balance security group",
+            # SecurityGroupIngress=[
+            #     ec2.SecurityGroupRule(
+            #         IpProtocol="tcp",
+            #         FromPort=80,
+            #         ToPort=80,
+            #         CidrIp="0.0.0.0/0",
+            #     ),
+            #     ec2.SecurityGroupRule(
+            #         IpProtocol="tcp",
+            #         FromPort=443,
+            #         ToPort=443,
+            #         CidrIp="0.0.0.0/0",
+            #     )
+            # ],
+            SecurityGroupEgress=[
+                ec2.SecurityGroupRule(
+                    CidrIp="0.0.0.0/0",
+                    FromPort=0,
+                    IpProtocol="-1",
+                    ToPort=65535
+                )
+            ],
+            VpcId=Ref(vpc.vpc),
+            Tags=Tags(
+                Name=Join("", [Ref("AWS::StackName"),
+                               " App web private load balance security group"]),
+            ),
+        )
+
+        #app web service private security group
+
+        self.app_web_instance_security_group = ec2.SecurityGroup(
+            "AppWebInstanceSecurityGroup",
+            GroupDescription="App Web Instance security group",
+            SecurityGroupIngress=[
+                ec2.SecurityGroupRule(
+                    IpProtocol="-1",
+                    FromPort="-1",
+                    ToPort="-1",
+                    # SourceSecurityGroupId=GetAtt(
+                    #     self.load_balancer_security_group, "GroupId"),
+                    SourceSecurityGroupId=Ref(self.app_web_private_lb_security_group)
+                ),
+                ec2.SecurityGroupRule(
+                    IpProtocol="-1",
+                    FromPort="-1",
+                    ToPort="-1",
+                    SourceSecurityGroupId=Ref(self.ops),
+                )
+            ],
+            SecurityGroupEgress=[
+                ec2.SecurityGroupRule(
+                    IpProtocol="-1",
+                    FromPort="-1",
+                    ToPort="-1",
+                    CidrIp="0.0.0.0/0",
+                ),
+            ],
+            VpcId=Ref(vpc.vpc),
+            Tags=Tags(
+                Name=Join("", [Ref("AWS::StackName"),
+                               " App Web instance security group"]),
+            ),
+        )
+
+        #app rdp service private security group
+
+        self.app_rdp_instance_security_group = ec2.SecurityGroup(
+            "AppRdpInstanceSecurityGroup",
+            GroupDescription="App RDP Instance security group",
+            SecurityGroupIngress=[
+                ec2.SecurityGroupRule(
+                    IpProtocol="tcp",
+                    FromPort="8888",
+                    ToPort="8888",
+                    CidrIp="0.0.0.0/0",
+                ),
+                ec2.SecurityGroupRule(
+                    IpProtocol="tcp",
+                    FromPort="6666",
+                    ToPort="6666",
+                    CidrIp="0.0.0.0/0",
+                ),
+                ec2.SecurityGroupRule(
+                    IpProtocol="-1",
+                    FromPort="-1",
+                    ToPort="-1",
+                    SourceSecurityGroupId=Ref(self.ops),
+                )
+            ],
+            SecurityGroupEgress=[
+                ec2.SecurityGroupRule(
+                    IpProtocol="-1",
+                    FromPort="-1",
+                    ToPort="-1",
+                    CidrIp="0.0.0.0/0",
+                ),
+            ],
+            VpcId=Ref(vpc.vpc),
+            Tags=Tags(
+                Name=Join("", [Ref("AWS::StackName"),
+                               " App RDP instance security group"]),
+            ),
+        )
+
+        #app db security group
+
+        self.app_db_security_group = ec2.SecurityGroup(
+            "AppDBSecurityGroup",
+            GroupDescription="App DB security group",
+            SecurityGroupIngress=[
+                ec2.SecurityGroupRule(
+                    IpProtocol="tcp",
+                    FromPort="1433",
+                    ToPort="1433",
+                    SourceSecurityGroupId=Ref(self.app_web_instance_security_group)
+                ),
+                ec2.SecurityGroupRule(
+                    IpProtocol="tcp",
+                    FromPort="1433",
+                    ToPort="1433",
+                    SourceSecurityGroupId=Ref(self.app_rdp_instance_security_group)
+                ),
+                ec2.SecurityGroupRule(
+                    IpProtocol="-1",
+                    FromPort="-1",
+                    ToPort="-1",
+                    SourceSecurityGroupId=Ref(self.ops),
+                )
+            ],
+            SecurityGroupEgress=[
+                ec2.SecurityGroupRule(
+                    IpProtocol="-1",
+                    FromPort="-1",
+                    ToPort="-1",
+                    CidrIp="0.0.0.0/0",
+                ),
+            ],
+            VpcId=Ref(vpc.vpc),
+            Tags=Tags(
+                Name=Join("", [Ref("AWS::StackName"),
+                               " App DB security group"]),
+            ),
+        )
+
+
+        #security ingress
+        self.app_rdp_instance_security_groupIngressRule = ec2.SecurityGroupIngress(
+            "appRdpInstanceSecurityGroupIngressRule",
+            GroupId=Ref(self.app_rdp_instance_security_group),
+            IpProtocol='-1',
+            SourceSecurityGroupId=Ref(self.app_rdp_instance_security_group),
+            FromPort='-1',
+            ToPort='-1',
+            DependsOn=self.app_rdp_instance_security_group
+        )
+        
+        self.app_web_instance_security_groupIngressRule = ec2.SecurityGroupIngress(
+            "appWebInstanceSecurityGroupIngressRule",
+            GroupId=Ref(self.app_web_instance_security_group),
+            IpProtocol='-1',
+            SourceSecurityGroupId=Ref(self.app_web_instance_security_group),
+            FromPort='-1',
+            ToPort='-1',
+            DependsOn=self.app_web_instance_security_group
+        )
+
+        self.app_web_private_lb_security_groupIngressRule = ec2.SecurityGroupIngress(
+            "appWebPrivateLbSecurityGroupIngressRule",
+            GroupId=Ref(self.app_web_private_lb_security_group),
+            IpProtocol='-1',
+            SourceSecurityGroupId=Ref(self.app_rdp_instance_security_group),
+            FromPort='-1',
+            ToPort='-1',
+            DependsOn=self.app_rdp_instance_security_group
+        )
+
+        self.web_instance_security_groupIngressRule = ec2.SecurityGroupIngress(
+            "webInstanceSecurityGroupIngressRule",
+            GroupId=Ref(self.app_web_private_lb_security_group),
+            IpProtocol='-1',
+            SourceSecurityGroupId=Ref(self.web_instance_security_group),
+            FromPort='-1',
+            ToPort='-1',
+            DependsOn=self.web_instance_security_group
+        )
+
+        
+        

@@ -25,9 +25,9 @@ aws ecs register-task-definition --family poc-111 --container-definitions '[{
 
 
 
-aws ecs register-task-definition --profile kingdee --family Web-cpy-02 --container-definitions '[
+aws ecs register-task-definition --profile kingdee --family Web-cpy-03 --container-definitions '[
             {
-                "name": "Web-cpy-02",
+                "name": "Web-cpy-03",
                 "image": "762849814821.dkr.ecr.cn-northwest-1.amazonaws.com.cn/perf/web:0821",
                 "cpu": 1024,
                 "memoryReservation": 2048,
@@ -94,15 +94,9 @@ aws ecs register-task-definition --profile kingdee --family Web-cpy-02 --contain
                       "namespace":"net.ipv4.tcp_max_syn_backlog",
                       "value":"8192"
                   },{
-                      "namespace":"net.ipv4.tcp_syncookies",
-                      "value":"1"
-                  },{
                       "namespace":"net.ipv4.ip_local_port_range",
                       "value":"1024 65535"
-                  },{
-                      "namespace":"net.ipv4.tcp_tw_recycle",
-                      "value":"1"
-                  }
+                  },
                 ]
             }
         ]'

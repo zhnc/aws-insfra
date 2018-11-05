@@ -23,9 +23,9 @@ class LoadBalancer(MagicDict):
             Name="ApplicationElasticLB",
             Scheme="internal",
             Subnets=[Ref(vpc.public_subnet_1), Ref(
-                vpc.public_subnet_2), Ref(vpc.public_subnet_3)],
+                vpc.public_subnet_2)],
             SecurityGroups=[
-                GetAtt(securitygroup.load_balancer_security_group, "GroupId"),
+                GetAtt(securitygroup.web_public_security_group, "GroupId"),
             ],
             DependsOn=vpc.internet_gateway_attachment.title
         )
