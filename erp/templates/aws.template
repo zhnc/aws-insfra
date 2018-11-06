@@ -136,17 +136,6 @@ Resources:
               - ' App web private load balance security group'
       VpcId: !Ref 'VPC'
     Type: AWS::EC2::SecurityGroup
-  ApplicationElasticLB:
-    DependsOn: InternetGatewayAttachment
-    Properties:
-      Name: ApplicationElasticLB
-      Scheme: internal
-      SecurityGroups:
-        - !GetAtt 'WebPublicLoadBalanceSecurityGroup.GroupId'
-      Subnets:
-        - !Ref 'PublicSubnet1'
-        - !Ref 'PublicSubnet2'
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
   InternetGateway:
     Properties:
       Tags:
@@ -343,20 +332,6 @@ Resources:
       GatewayId: !Ref 'InternetGateway'
       RouteTableId: !Ref 'PublicRouteTable'
     Type: AWS::EC2::Route
-  TargetGroupWeb:
-    Properties:
-      HealthCheckIntervalSeconds: '30'
-      HealthCheckProtocol: HTTP
-      HealthCheckTimeoutSeconds: '10'
-      HealthyThresholdCount: '4'
-      Matcher:
-        HttpCode: '200'
-      Name: WebTarget
-      Port: !Ref 'WebServerPort'
-      Protocol: HTTP
-      UnhealthyThresholdCount: '3'
-      VpcId: !Ref 'VPC'
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
   VPC:
     Properties:
       CidrBlock: 172.1.0.0/16
@@ -485,7 +460,7 @@ Resources:
     DependsOn: WebInstanceSecurityGroup
     Properties:
       FromPort: '-1'
-      GroupId: !Ref 'AppWebPrivateLoadBalanceSecurityGroup'
+      GroupId: !Ref 'WebInstanceSecurityGroup'
       IpProtocol: '-1'
       SourceSecurityGroupId: !Ref 'WebInstanceSecurityGroup'
       ToPort: '-1'

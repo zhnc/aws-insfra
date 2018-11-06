@@ -343,5 +343,15 @@ class SecurityGroup(MagicDict):
             DependsOn=self.web_instance_security_group
         )
 
+        self.web_instance_security_groupIngressRule = ec2.SecurityGroupIngress(
+            "webInstanceSecurityGroupIngressRule",
+            GroupId=Ref(self.web_instance_security_group),
+            IpProtocol='-1',
+            SourceSecurityGroupId=Ref(self.web_instance_security_group),
+            FromPort='-1',
+            ToPort='-1',
+            DependsOn=self.web_instance_security_group
+        )
+
         
         

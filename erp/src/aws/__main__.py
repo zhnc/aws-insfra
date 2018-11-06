@@ -59,9 +59,9 @@ def main():
     for res in securityGroup.values():
         template.add_resource(res)
 
-    elb = LoadBalancer(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
-    for res in elb.values():
-        template.add_resource(res)
+    # elb = LoadBalancer(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
+    # for res in elb.values():
+    #     template.add_resource(res)
 
     # ecs = ECS(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
     # for res in ecs.values():
