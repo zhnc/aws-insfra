@@ -35,3 +35,4 @@
         
     
 }
+// aws ecs create-service --cluster aws-perftest --service-name web-nlb --cli-input-json file://ecs-nlb-service-elb.json
