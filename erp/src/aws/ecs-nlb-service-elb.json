@@ -9,30 +9,16 @@
             "containerPort": 8080
         }
     ],
-    "desiredCount": 0,
 
     "launchType": "EC2",
    
-    "deploymentConfiguration": {
-        "maximumPercent": 200,
-        "minimumHealthyPercent": 100
-    },
+
     
     "role": "ecsServiceRole",
     
     "placementConstraints": [],
-    "placementStrategy": [
-        {
-            "type": "spread",
-            "field": "attribute:ecs.availability-zone"
-        },
-        {
-            "type": "spread",
-            "field": "instanceId"
-        }
-    ],
-    "schedulingStrategy": "REPLICA"
+   
+    "schedulingStrategy": "DAEMON"
 
 
 }
-// aws ecs create-service --cluster aws-perftest --service-name web-nlb --cli-input-json file://ecs-nlb-service-elb.json

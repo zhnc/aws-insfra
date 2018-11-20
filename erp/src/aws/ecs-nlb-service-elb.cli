@@ -1,0 +1,7 @@
+
+// aws ecs create-service --cluster aws-perftest --service-name web-nlb-daemon --cli-input-json file://ecs-nlb-service-elb.json
+
+//; echo \* soft nofile 204800 >> /etc/security/limits.conf;echo \* hard nofile 204800 >> /etc/security/limits.conf;echo \* soft nproc 204800 >> /etc/security/limits.conf;echo \* hard nproc 204800 >> /etc/security/limits.conf;yum update -y ecs-init
+
+//#!/bin/bash
+//echo ECS_CLUSTER=poc >> /etc/ecs/ecs.config;echo ECS_BACKEND_HOST= >> /etc/ecs/ecs.config; echo \* soft nofile 204800 >> /etc/security/limits.conf;echo \* hard nofile 204800 >> /etc/security/limits.conf;echo \* soft nproc 204800 >> /etc/security/limits.conf;echo \* hard nproc 204800 >> /etc/security/limits.conf;yum update -y ecs-init
