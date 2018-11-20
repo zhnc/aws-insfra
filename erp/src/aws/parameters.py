@@ -7,11 +7,11 @@ class Parameters(MagicDict):
     def __init__(self):
         super(Parameters, self).__init__()
 
-        # self.key_pair = Parameter(
-        #     "KeyPair",
-        #     Type="AWS::EC2::KeyPair::KeyName",
-        #     Description="Key pair to use to login to your instance"
-        # )
+        self.key_pair = Parameter(
+            "KeyPair",
+            Type="AWS::EC2::KeyPair::KeyName",
+            Description="Key pair to use to login to your instance"
+        )
 
         # self.db_password = Parameter(
         #     "DBPassword",
@@ -41,18 +41,18 @@ class Parameters(MagicDict):
         #     Description="Number of days to store automated daily database backups for."
         # )
 
-        # self.ec2_instance_type = Parameter(
-        #     "EC2InstanceType",
-        #     Type="String",
-        #     AllowedValues=[
-        #         "t2.micro", "t2.small", "t2.medium", "t2.large", "t2.xlarge", "t2.2xlarge",
-        #         "m4.large", "m4.xlarge", "m4.2xlarge",
-        #         "m4.4xlarge", "m4.10xlarge", "m4.16xlarge",
+        self.rdp_server_ec2_instance_type = Parameter(
+            "EC2InstanceType",
+            Type="String",
+            AllowedValues=[
+                "t2.micro", "t2.small", "t2.medium", "t2.large", "t2.xlarge", "t2.2xlarge",
+                "m4.large", "m4.xlarge", "m4.2xlarge",
+                "m4.4xlarge", "m4.10xlarge", "m4.16xlarge",
 
-        #     ],
-        #     Default="t2.micro",
-        #     Description="Instance class for your server. Defines amount of CPU and Memory."
-        # )
+            ],
+            Default="t2.micro",
+            Description="Instance class for rdp server. Defines amount of CPU and Memory."
+        )
 
         self.WebServerPort = Parameter(
             "WebServerPort",
@@ -66,3 +66,16 @@ class Parameters(MagicDict):
         #     Type="String",
         #     Default="ami-087cfa08153018a91"
         # )
+
+        self.RdpServerImageId = Parameter(
+            "RdpServerImageId",
+            Type="String",
+            Default="ami-087cfa08153018a91"
+        )
+
+        self.ScaleCapacity = Parameter(
+            "ScaleCapacity",
+            Default="1",
+            Type="String",
+            Description="Number of api servers to run",
+        )

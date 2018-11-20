@@ -8,6 +8,7 @@ from parameters import Parameters
 from vpc import VPC
 from securitygroup import SecurityGroup
 from ecs import ECS
+from Autoscaling import AutoScaling
 
 
 def main():
@@ -59,6 +60,10 @@ def main():
     for res in securityGroup.values():
         template.add_resource(res)
 
+    autoScaling = AutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
+    for res in autoScaling.values():
+        template.add_resource(res)
+        
     # elb = LoadBalancer(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
     # for res in elb.values():
     #     template.add_resource(res)
