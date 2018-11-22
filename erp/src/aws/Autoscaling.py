@@ -71,7 +71,7 @@ class AutoScaling(MagicDict):
             #     "    --region ", Ref("AWS::Region"), "\n"
             # ])),
             ImageId=Ref(parameters.RdpServerImageId),
-            KeyName=Ref(parameters.key_pair),
+            KeyName=Ref(parameters.rdp_server_key_pair),
             BlockDeviceMappings=[
                 ec2.BlockDeviceMapping(
                     DeviceName="/dev/sda1",
@@ -88,7 +88,7 @@ class AutoScaling(MagicDict):
             "RdpAutoscalingGroup",
             DesiredCapacity=Ref(parameters.ScaleCapacity),
             Tags=Tags(
-                Name=Join("-", [Ref("AWS::StackName"), "rdp-autoScaling"]),
+                Name=Join("-", [Ref("AWS::StackName"), "rdp-server-autoScaling"]),
             ),
 
             LaunchConfigurationName=Ref(self.launchConfig),
@@ -97,18 +97,21 @@ class AutoScaling(MagicDict):
             VPCZoneIdentifier=[Ref(vpc.private_subnet_1),
                                Ref(vpc.private_subnet_2)],
             # LoadBalancerNames=[Ref(LoadBalancer)],
-            AvailabilityZones=[Ref(Select(0, GetAZs())),
-                               Ref(Select(1, GetAZs()))],
+            AvailabilityZones=[Select(0, GetAZs()),
+                               Select(1, GetAZs())],
             HealthCheckType="EC2",
-            UpdatePolicy=UpdatePolicy(
-                AutoScalingReplacingUpdate=AutoScalingReplacingUpdate(
-                    WillReplace=True,
-                ),
-                AutoScalingRollingUpdate=AutoScalingRollingUpdate(
-                    PauseTime='PT5M',
-                    MinInstancesInService="1",
-                    MaxBatchSize='1',
-                    WaitOnResourceSignals=True
-                )
-            )
+            # PropagateAtLaunch='true',
+            # UpdatePolicy=UpdatePolicy(
+            #     AutoScalingReplacingUpdate=AutoScalingReplacingUpdate(
+            #         WillReplace=True,
+            #         # PropagateAtLaunch=True,
+            #     ),
+            #     AutoScalingRollingUpdate=AutoScalingRollingUpdate(
+            #         PauseTime='PT5M',
+            #         MinInstancesInService="1",
+            #         MaxBatchSize='1',
+            #         WaitOnResourceSignals=True
+            #     ),
+            #     # PropagateAtLaunch=True,
+            # )
         )

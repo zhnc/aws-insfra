@@ -7,8 +7,14 @@ class Parameters(MagicDict):
     def __init__(self):
         super(Parameters, self).__init__()
 
-        self.key_pair = Parameter(
-            "KeyPair",
+        self.rdp_server_key_pair = Parameter(
+            "RdpServerKeyPair",
+            Type="AWS::EC2::KeyPair::KeyName",
+            Description="Key pair to use to login to your instance"
+        )
+
+        self.mssql_key_pair = Parameter(
+            "MSSqlKeyPair",
             Type="AWS::EC2::KeyPair::KeyName",
             Description="Key pair to use to login to your instance"
         )
@@ -42,7 +48,7 @@ class Parameters(MagicDict):
         # )
 
         self.rdp_server_ec2_instance_type = Parameter(
-            "EC2InstanceType",
+            "RdpServerEC2InstanceType",
             Type="String",
             AllowedValues=[
                 "t2.micro", "t2.small", "t2.medium", "t2.large", "t2.xlarge", "t2.2xlarge",
@@ -67,10 +73,41 @@ class Parameters(MagicDict):
         #     Default="ami-087cfa08153018a91"
         # )
 
+        self.MssqlServerImageId = Parameter(
+            "MssqlServerImageId",
+            Type="String",
+            Default="ami-02cd86d8309ab34dd"
+        )
+
+        self.mssql_server_ec2_instance_type = Parameter(
+            "MssqlEc2InstanceType",
+            Type="String",
+            AllowedValues=[
+                "t2.micro", "t2.small", "t2.medium", "t2.large", "t2.xlarge", "t2.2xlarge",
+                "m4.large", "m4.xlarge", "m4.2xlarge",
+                "m4.4xlarge", "m4.10xlarge", "m4.16xlarge",
+
+            ],
+            Default="t2.micro",
+            Description="Instance class for rdp server. Defines amount of CPU and Memory."
+        )
+
         self.RdpServerImageId = Parameter(
             "RdpServerImageId",
             Type="String",
-            Default="ami-087cfa08153018a91"
+            Default="ami-00cdf3fbf60727983"
+        )
+
+        self.WebPortalServerImageId = Parameter(
+            "WebPortalServerImageId",
+            Type="String",
+            Default="ami-0fb9d02d706b826c2"
+        )
+
+        self.AppServerImageId = Parameter(
+            "AppServerImageId",
+            Type="String",
+            Default="ami-0c54030c708a20120"
         )
 
         self.ScaleCapacity = Parameter(

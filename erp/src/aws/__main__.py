@@ -9,6 +9,7 @@ from vpc import VPC
 from securitygroup import SecurityGroup
 from ecs import ECS
 from Autoscaling import AutoScaling
+from mssql import MsSql
 
 
 def main():
@@ -62,6 +63,10 @@ def main():
 
     autoScaling = AutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
     for res in autoScaling.values():
+        template.add_resource(res)
+
+    mssql = MsSql(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
+    for res in mssql.values():
         template.add_resource(res)
         
     # elb = LoadBalancer(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
