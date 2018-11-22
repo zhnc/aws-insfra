@@ -1,0 +1,78 @@
+aws ecs register-task-definition --profile kingdee --family Mservice-patch-awsvpc --network-mode awsvpc --container-definitions  '[{
+    "name": "mservice",
+    "image": "762849814821.dkr.ecr.cn-northwest-1.amazonaws.com.cn/perf/mservice:1122",
+    "cpu": 7168,
+    "memoryReservation": 10240,
+    "portMappings": [],
+    "essential": true,
+    "environment": [
+        {
+            "name": "configUrl",
+            "value": "192.168.2.103:2181"
+        },
+        {
+            "name": "appIds",
+            "value": "bos,bd,fibd,ai,ap,bcm,cas,iep,gl,pa,fa,rpt,cm,er,exp,em,ir,tra,ssc,task,quo,scp,sou,srm,bdm,mm,lbd,im"
+        },
+        {
+            "name": "BIZLIBS",
+            "value": "bd-bd,fi-ai,fi-ap,fi-bcm,fi-cas,fi-fa,fi-iep,fi-gl,fi-pa,fi-bd,fi-er,ssc-task,scm-pur,scm-quo,scm-scp,scm-sou,scm-srm"
+        },
+        {
+            "name": "appName",
+            "value": "mservice-fi"
+        },
+        {
+            "name": "clusterName",
+            "value": "AWSPerfTest"
+        },
+        {
+            "name": "appSplit",
+            "value": "true"
+        },
+        {
+            "name": "APPSTORE_URL",
+            "value": "http://192.168.2.103:88/biz10patchapp/"
+        },
+        {
+            "name": "BOSLIBS",
+            "value": "bos-corelib,bos-core,bos-ext,bos-base,bos-devportal,bos-portal,bos-smc,bos-wf"
+        },
+        {
+            "name": "configAppName",
+            "value": "mservice"
+        },
+        {
+            "name": "JVM_OPTS",
+            "value": "-server -Xms9216m -Xmx9216m -XX:MetaspaceSize=768m -XX:+DisableExplicitGC -Duser.timezone=GMT+8 -Dfile.encoding=UTF-8 -XX:+UseG1GC  -XX:+PrintGCDateStamps -XX:+HeapDumpOnOutOfMemoryError -XX:+PrintGCDetails  -Xloggc:/mservice/logs/gc.log"
+        }
+    ],
+    "mountPoints": [],
+    "volumesFrom": [],
+    "ulimits": [
+        {
+            "name": "nofile",
+            "softLimit": 20480,
+            "hardLimit": 20480
+        },
+        {
+            "name": "nproc",
+            "softLimit": 20480,
+            "hardLimit": 20480
+        }
+    ],
+    "systemControls": [
+        {
+            "namespace": "net.core.somaxconn",
+            "value": "4096"
+        },
+        {
+            "namespace": "net.ipv4.tcp_max_syn_backlog",
+            "value": "8192"
+        },
+        {
+            "namespace": "net.ipv4.ip_local_port_range",
+            "value": "1024 65535"
+        }
+    ]
+}]'
