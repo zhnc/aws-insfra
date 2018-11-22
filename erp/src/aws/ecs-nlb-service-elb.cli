@@ -1,5 +1,5 @@
 
-// aws ecs create-service --cluster aws-perftest --service-name web-nlb-daemon --cli-input-json file://ecs-nlb-service-elb.json
+// aws ecs create-service --cluster aws-perftest --service-name web-nlb-deamon --profile kingdee --cli-input-json file://ecs-nlb-service-elb.json
 
 //; echo \* soft nofile 204800 >> /etc/security/limits.conf;echo \* hard nofile 204800 >> /etc/security/limits.conf;echo \* soft nproc 204800 >> /etc/security/limits.conf;echo \* hard nproc 204800 >> /etc/security/limits.conf;yum update -y ecs-init
 
