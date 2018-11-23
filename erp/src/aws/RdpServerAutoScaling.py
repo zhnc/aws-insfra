@@ -14,17 +14,17 @@ from magicdict import MagicDict
 
 
 
-class AutoScaling(MagicDict):
+class RdpServerAutoScaling(MagicDict):
     def __init__(self, vpc, parameters, securitygroup):
         """
         :type vpc VPC
         :type parameters Parameters
         :type securitygroup SecurityGroup
         """
-        super(AutoScaling, self).__init__()
+        super(RdpServerAutoScaling, self).__init__()
 
         self.launchConfig = LaunchConfiguration(
-            "LaunchConfiguration",
+            "RdpServerLaunchConfiguration",
             Metadata=autoscaling.Metadata(
                 cloudformation.Init({
                     "config": cloudformation.InitConfig(
@@ -85,11 +85,16 @@ class AutoScaling(MagicDict):
             InstanceType=Ref(parameters.rdp_server_ec2_instance_type),
         )
         self.AutoscalingGroup = AutoScalingGroup(
-            "RdpAutoscalingGroup",
+            "RdpServerAutoscalingGroup",
             DesiredCapacity=Ref(parameters.ScaleCapacity),
-            Tags=Tags(
-                Name=Join("-", [Ref("AWS::StackName"), "rdp-server-autoScaling"]),
-            ),
+            Tags=[
+                {
+                    'Key' : 'Name',
+                    'Value' : Join("-", [Ref("AWS::StackName"), "rdp-server-autoScaling"]),
+                    'PropagateAtLaunch':'true'
+                }
+                # Name=Join("-", [Ref("AWS::StackName"), "rdp-server-autoScaling"]),
+            ],
 
             LaunchConfigurationName=Ref(self.launchConfig),
             MinSize=Ref(parameters.ScaleCapacity),
@@ -100,18 +105,16 @@ class AutoScaling(MagicDict):
             AvailabilityZones=[Select(0, GetAZs()),
                                Select(1, GetAZs())],
             HealthCheckType="EC2",
-            # PropagateAtLaunch='true',
-            # UpdatePolicy=UpdatePolicy(
-            #     AutoScalingReplacingUpdate=AutoScalingReplacingUpdate(
-            #         WillReplace=True,
-            #         # PropagateAtLaunch=True,
-            #     ),
-            #     AutoScalingRollingUpdate=AutoScalingRollingUpdate(
-            #         PauseTime='PT5M',
-            #         MinInstancesInService="1",
-            #         MaxBatchSize='1',
-            #         WaitOnResourceSignals=True
-            #     ),
-            #     # PropagateAtLaunch=True,
-            # )
+            HealthCheckGracePeriod=300,
+            UpdatePolicy=UpdatePolicy(
+                AutoScalingReplacingUpdate=AutoScalingReplacingUpdate(
+                    WillReplace=True,
+                ),
+                AutoScalingRollingUpdate=AutoScalingRollingUpdate(
+                    PauseTime='PT5M',
+                    MinInstancesInService="1",
+                    MaxBatchSize='1',
+                    WaitOnResourceSignals=True
+                ),
+            )
         )

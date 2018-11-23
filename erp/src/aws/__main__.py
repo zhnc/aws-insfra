@@ -8,7 +8,10 @@ from parameters import Parameters
 from vpc import VPC
 from securitygroup import SecurityGroup
 from ecs import ECS
-from Autoscaling import AutoScaling
+from RdpServerAutoScaling import RdpServerAutoScaling
+from AppServerAutoScaling import AppServerAutoScaling
+from WebServerAutoScaling import WebServerAutoScaling
+
 from mssql import MsSql
 
 
@@ -61,10 +64,19 @@ def main():
     for res in securityGroup.values():
         template.add_resource(res)
 
-    autoScaling = AutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
-    for res in autoScaling.values():
+    rdpServerAutoScaling = RdpServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
+    for res in rdpServerAutoScaling.values():
         template.add_resource(res)
 
+    appServerAutoScaling = AppServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
+    for res in appServerAutoScaling.values():
+        template.add_resource(res)
+
+        
+    webServerAutoScaling = WebServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
+    for res in webServerAutoScaling.values():
+        template.add_resource(res)
+        
     mssql = MsSql(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
     for res in mssql.values():
         template.add_resource(res)

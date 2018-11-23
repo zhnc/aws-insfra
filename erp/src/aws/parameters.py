@@ -10,13 +10,25 @@ class Parameters(MagicDict):
         self.rdp_server_key_pair = Parameter(
             "RdpServerKeyPair",
             Type="AWS::EC2::KeyPair::KeyName",
-            Description="Key pair to use to login to your instance"
+            Description="Key pair to use to login to your Rdp server"
         )
 
         self.mssql_key_pair = Parameter(
             "MSSqlKeyPair",
             Type="AWS::EC2::KeyPair::KeyName",
-            Description="Key pair to use to login to your instance"
+            Description="Key pair to use to login to your mssql server"
+        )
+
+        self.app_server_key_pair = Parameter(
+            "AppServerKeyPair",
+            Type="AWS::EC2::KeyPair::KeyName",
+            Description="Key pair to use to login to your app server"
+        )
+
+        self.web_server_key_pair = Parameter(
+            "WebServerKeyPair",
+            Type="AWS::EC2::KeyPair::KeyName",
+            Description="Key pair to use to login to your web server"
         )
 
         # self.db_password = Parameter(
@@ -60,12 +72,52 @@ class Parameters(MagicDict):
             Description="Instance class for rdp server. Defines amount of CPU and Memory."
         )
 
-        self.WebServerPort = Parameter(
-            "WebServerPort",
+        self.app_server_ec2_instance_type = Parameter(
+            "AppServerEC2InstanceType",
+            Type="String",
+            AllowedValues=[
+                "t2.micro", "t2.small", "t2.medium", "t2.large", "t2.xlarge", "t2.2xlarge",
+                "m4.large", "m4.xlarge", "m4.2xlarge",
+                "m4.4xlarge", "m4.10xlarge", "m4.16xlarge",
+
+            ],
+            Default="t2.micro",
+            Description="Instance class for app server. Defines amount of CPU and Memory."
+        )
+
+        self.web_server_ec2_instance_type = Parameter(
+            "WebServerEC2InstanceType",
+            Type="String",
+            AllowedValues=[
+                "t2.micro", "t2.small", "t2.medium", "t2.large", "t2.xlarge", "t2.2xlarge",
+                "m4.large", "m4.xlarge", "m4.2xlarge",
+                "m4.4xlarge", "m4.10xlarge", "m4.16xlarge",
+
+            ],
+            Default="t2.micro",
+            Description="Instance class for Web server. Defines amount of CPU and Memory."
+        )
+
+        self.app_api_port = Parameter(
+            "ApiServerPort",
             Type="String",
             Default="80",
+            Description="TCP/IP port of the api server",
+        )
+
+        self.web_port = Parameter(
+            "webServerPort",
+            Type="String",
+            Default="8088",
             Description="TCP/IP port of the web server",
         )
+
+        # self.WebServerPort = Parameter(
+        #     "WebServerPort",
+        #     Type="String",
+        #     Default="80",
+        #     Description="TCP/IP port of the web server",
+        # )
 
         # self.ECSImageId = Parameter(
         #     "ECSImageId",

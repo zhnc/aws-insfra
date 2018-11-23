@@ -53,6 +53,18 @@ class SecurityGroup(MagicDict):
                 ),
                 ec2.SecurityGroupRule(
                     IpProtocol="tcp",
+                    FromPort=8088,
+                    ToPort=8088,
+                    CidrIp="0.0.0.0/0",
+                ),
+                ec2.SecurityGroupRule(
+                    IpProtocol="tcp",
+                    FromPort=3306,
+                    ToPort=3306,
+                    CidrIp="0.0.0.0/0",
+                ),
+                ec2.SecurityGroupRule(
+                    IpProtocol="tcp",
                     FromPort=443,
                     ToPort=443,
                     CidrIp="0.0.0.0/0",
@@ -118,6 +130,7 @@ class SecurityGroup(MagicDict):
             DependsOn=self.web_instance_security_group
         )
 
+        
         # web db security group
         self.web_db_security_group = ec2.SecurityGroup(
             "WebDBSecurityGroup",
@@ -150,6 +163,17 @@ class SecurityGroup(MagicDict):
                                " web DB security group"]),
             ),
         )
+
+        self.web_instance_security_groupIngressRule = ec2.SecurityGroupIngress(
+            "instanceSecurityGroupIngressRule",
+            GroupId=Ref(self.web_instance_security_group),
+            IpProtocol='-1',
+            SourceSecurityGroupId=Ref(self.web_public_security_group),
+            FromPort='-1',
+            ToPort='-1',
+            DependsOn=self.web_db_security_group
+        )
+
 
         #app web private load balance
 
