@@ -63,10 +63,9 @@ class Parameters(MagicDict):
             "RdpServerEC2InstanceType",
             Type="String",
             AllowedValues=[
-                "c3.xlarge",
-
+                "c3.xlarge"
             ],
-            Default="t2.micro",
+            Default="c3.xlarge",
             Description="Instance class for rdp server. Defines amount of CPU and Memory."
         )
 
@@ -74,10 +73,9 @@ class Parameters(MagicDict):
             "AppServerEC2InstanceType",
             Type="String",
             AllowedValues=[
-                "m3.large",
-
+                "m3.large"
             ],
-            Default="t2.micro",
+            Default="m3.large",
             Description="Instance class for app server. Defines amount of CPU and Memory."
         )
 
@@ -85,10 +83,9 @@ class Parameters(MagicDict):
             "WebServerEC2InstanceType",
             Type="String",
             AllowedValues=[
-                "m4.large",
-
+                "m4.large"
             ],
-            Default="t2.micro",
+            Default="m4.large",
             Description="Instance class for Web server. Defines amount of CPU and Memory."
         )
 
@@ -96,10 +93,9 @@ class Parameters(MagicDict):
             "MssqlEc2InstanceType",
             Type="String",
             AllowedValues=[
-                "r4.large",
-
+                "r4.large"
             ],
-            Default="t2.micro",
+            Default="r4.large",
             Description="Instance class for rdp server. Defines amount of CPU and Memory."
         )
 

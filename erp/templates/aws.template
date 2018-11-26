@@ -39,7 +39,7 @@ Parameters:
   AppServerEC2InstanceType:
     AllowedValues:
       - m3.large
-    Default: t2.micro
+    Default: m3.large
     Description: Instance class for app server. Defines amount of CPU and Memory.
     Type: String
   AppServerImageId:
@@ -54,7 +54,7 @@ Parameters:
   MssqlEc2InstanceType:
     AllowedValues:
       - r4.large
-    Default: t2.micro
+    Default: r4.large
     Description: Instance class for rdp server. Defines amount of CPU and Memory.
     Type: String
   MssqlServerImageId:
@@ -63,7 +63,7 @@ Parameters:
   RdpServerEC2InstanceType:
     AllowedValues:
       - c3.xlarge
-    Default: t2.micro
+    Default: c3.xlarge
     Description: Instance class for rdp server. Defines amount of CPU and Memory.
     Type: String
   RdpServerImageId:
@@ -82,7 +82,7 @@ Parameters:
   WebServerEC2InstanceType:
     AllowedValues:
       - m4.large
-    Default: t2.micro
+    Default: m4.large
     Description: Instance class for Web server. Defines amount of CPU and Memory.
     Type: String
   WebServerKeyPair:
