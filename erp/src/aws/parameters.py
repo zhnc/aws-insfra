@@ -63,9 +63,7 @@ class Parameters(MagicDict):
             "RdpServerEC2InstanceType",
             Type="String",
             AllowedValues=[
-                "t2.micro", "t2.small", "t2.medium", "t2.large", "t2.xlarge", "t2.2xlarge",
-                "m4.large", "m4.xlarge", "m4.2xlarge",
-                "m4.4xlarge", "m4.10xlarge", "m4.16xlarge",
+                "c3.xlarge",
 
             ],
             Default="t2.micro",
@@ -76,9 +74,7 @@ class Parameters(MagicDict):
             "AppServerEC2InstanceType",
             Type="String",
             AllowedValues=[
-                "t2.micro", "t2.small", "t2.medium", "t2.large", "t2.xlarge", "t2.2xlarge",
-                "m4.large", "m4.xlarge", "m4.2xlarge",
-                "m4.4xlarge", "m4.10xlarge", "m4.16xlarge",
+                "m3.large",
 
             ],
             Default="t2.micro",
@@ -89,14 +85,24 @@ class Parameters(MagicDict):
             "WebServerEC2InstanceType",
             Type="String",
             AllowedValues=[
-                "t2.micro", "t2.small", "t2.medium", "t2.large", "t2.xlarge", "t2.2xlarge",
-                "m4.large", "m4.xlarge", "m4.2xlarge",
-                "m4.4xlarge", "m4.10xlarge", "m4.16xlarge",
+                "m4.large",
 
             ],
             Default="t2.micro",
             Description="Instance class for Web server. Defines amount of CPU and Memory."
         )
+
+        self.mssql_server_ec2_instance_type = Parameter(
+            "MssqlEc2InstanceType",
+            Type="String",
+            AllowedValues=[
+                "r4.large",
+
+            ],
+            Default="t2.micro",
+            Description="Instance class for rdp server. Defines amount of CPU and Memory."
+        )
+
 
         self.app_api_port = Parameter(
             "ApiServerPort",
@@ -131,19 +137,7 @@ class Parameters(MagicDict):
             Default="ami-02cd86d8309ab34dd"
         )
 
-        self.mssql_server_ec2_instance_type = Parameter(
-            "MssqlEc2InstanceType",
-            Type="String",
-            AllowedValues=[
-                "t2.micro", "t2.small", "t2.medium", "t2.large", "t2.xlarge", "t2.2xlarge",
-                "m4.large", "m4.xlarge", "m4.2xlarge",
-                "m4.4xlarge", "m4.10xlarge", "m4.16xlarge",
-
-            ],
-            Default="t2.micro",
-            Description="Instance class for rdp server. Defines amount of CPU and Memory."
-        )
-
+        
         self.RdpServerImageId = Parameter(
             "RdpServerImageId",
             Type="String",
