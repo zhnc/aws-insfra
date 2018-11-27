@@ -14,17 +14,17 @@ from magicdict import MagicDict
 
 
 
-class RdpServerAutoScaling(MagicDict):
+class UERdpServerAutoScaling(MagicDict):
     def __init__(self, vpc, parameters, securitygroup):
         """
         :type vpc VPC
         :type parameters Parameters
         :type securitygroup SecurityGroup
         """
-        super(RdpServerAutoScaling, self).__init__()
+        super(UERdpServerAutoScaling, self).__init__()
 
         self.launchConfig = LaunchConfiguration(
-            "RdpServerLaunchConfiguration",
+            "UERdpServerLaunchConfiguration",
             Metadata=autoscaling.Metadata(
                 cloudformation.Init({
                     "config": cloudformation.InitConfig(
@@ -70,37 +70,47 @@ class RdpServerAutoScaling(MagicDict):
             #     "    --stack ", Ref("AWS::StackName"),
             #     "    --region ", Ref("AWS::Region"), "\n"
             # ])),
-            ImageId=Ref(parameters.RdpServerImageId),
+            ImageId=Ref(parameters.UERdpServerImageId),
             KeyName=Ref(parameters.rdp_server_key_pair),
             BlockDeviceMappings=[
                 ec2.BlockDeviceMapping(
                     DeviceName="/dev/sda1",
                     Ebs=ec2.EBSBlockDevice(
-                        VolumeSize="100"
+                        VolumeSize="40",
+                        VolumeType="gp2"
                     )
                 ),
+                ec2.BlockDeviceMapping(
+                    DeviceName="xvdb",
+                    Ebs=ec2.EBSBlockDevice(
+                        VolumeSize="100",
+                        VolumeType="gp2",
+                        SnapshotId="snap-0e0e04671533fe363"
+                    )
+                )
             ],
             SecurityGroups=[
                 Ref(securitygroup.app_rdp_instance_security_group)],
-            InstanceType=Ref(parameters.rdp_server_ec2_instance_type),
+            InstanceType=Ref(parameters.ue_rdp_server_ec2_instance_type),
+            AssociatePublicIpAddress=True
         )
         self.AutoscalingGroup = AutoScalingGroup(
-            "RdpServerAutoscalingGroup",
+            "UeRdpServerAutoscalingGroup",
             DesiredCapacity=Ref(parameters.ScaleCapacity),
             Tags=[
                 {
                     'Key' : 'Name',
-                    'Value' : Join("-", [Ref("AWS::StackName"), "rdp-server-autoScaling"]),
+                    'Value' : Join("-", [Ref("AWS::StackName"), "ue-rdp-server-autoScaling"]),
                     'PropagateAtLaunch':'true'
                 }
                 # Name=Join("-", [Ref("AWS::StackName"), "rdp-server-autoScaling"]),
             ],
 
             LaunchConfigurationName=Ref(self.launchConfig),
-            MinSize=Ref(parameters.ScaleCapacity),
+            MinSize=Ref(parameters.MinCapacity),
             MaxSize=Ref(parameters.ScaleCapacity),
-            VPCZoneIdentifier=[Ref(vpc.private_subnet_1),
-                               Ref(vpc.private_subnet_2)],
+            VPCZoneIdentifier=[Ref(vpc.public_subnet_1),
+                               Ref(vpc.public_subnet_2)],
             # LoadBalancerNames=[Ref(LoadBalancer)],
             AvailabilityZones=[Select(0, GetAZs()),
                                Select(1, GetAZs())],

@@ -23,6 +23,12 @@ class SecurityGroup(MagicDict):
                     FromPort=3389,
                     ToPort=3389,
                     CidrIp="0.0.0.0/0",
+                ),
+                ec2.SecurityGroupRule(
+                    IpProtocol="tcp",
+                    FromPort=22,
+                    ToPort=22,
+                    CidrIp="0.0.0.0/0",
                 )
             ],
             SecurityGroupEgress=[
@@ -253,14 +259,14 @@ class SecurityGroup(MagicDict):
             SecurityGroupIngress=[
                 ec2.SecurityGroupRule(
                     IpProtocol="tcp",
-                    FromPort="8888",
-                    ToPort="8888",
+                    FromPort="8696",
+                    ToPort="8696",
                     CidrIp="0.0.0.0/0",
                 ),
                 ec2.SecurityGroupRule(
                     IpProtocol="tcp",
-                    FromPort="6666",
-                    ToPort="6666",
+                    FromPort="5696",
+                    ToPort="5696",
                     CidrIp="0.0.0.0/0",
                 ),
                 ec2.SecurityGroupRule(
@@ -301,6 +307,18 @@ class SecurityGroup(MagicDict):
                     IpProtocol="tcp",
                     FromPort="1433",
                     ToPort="1433",
+                    SourceSecurityGroupId=Ref(self.app_rdp_instance_security_group)
+                ),
+                ec2.SecurityGroupRule(
+                    IpProtocol="tcp",
+                    FromPort="55555",
+                    ToPort="55555",
+                    SourceSecurityGroupId=Ref(self.app_web_instance_security_group)
+                ),
+                ec2.SecurityGroupRule(
+                    IpProtocol="tcp",
+                    FromPort="55555",
+                    ToPort="55555",
                     SourceSecurityGroupId=Ref(self.app_rdp_instance_security_group)
                 ),
                 ec2.SecurityGroupRule(
@@ -348,7 +366,7 @@ class SecurityGroup(MagicDict):
         )
 
         self.app_web_private_lb_security_groupIngressRule = ec2.SecurityGroupIngress(
-            "appWebPrivateLbSecurityGroupIngressRule",
+            "appWebPrivateLbSecurityGroupIngressRule03",
             GroupId=Ref(self.app_web_private_lb_security_group),
             IpProtocol='-1',
             SourceSecurityGroupId=Ref(self.app_rdp_instance_security_group),
@@ -370,6 +388,36 @@ class SecurityGroup(MagicDict):
         self.web_instance_security_groupIngressRule = ec2.SecurityGroupIngress(
             "webInstanceSecurityGroupIngressRule",
             GroupId=Ref(self.web_instance_security_group),
+            IpProtocol='-1',
+            SourceSecurityGroupId=Ref(self.web_instance_security_group),
+            FromPort='-1',
+            ToPort='-1',
+            DependsOn=self.web_instance_security_group
+        )
+
+        self.web_public_security_group_groupIngressRule = ec2.SecurityGroupIngress(
+            "webPublicSecurityGroupIngressRule",
+            GroupId=Ref(self.web_public_security_group),
+            IpProtocol='-1',
+            SourceSecurityGroupId=Ref(self.web_instance_security_group),
+            FromPort='-1',
+            ToPort='-1',
+            DependsOn=self.web_instance_security_group
+        )
+
+        self.app_web_private_lb_security_groupIngressRule01 = ec2.SecurityGroupIngress(
+            "appApicSecurityGroupIngressRule01",
+            GroupId=Ref(self.app_web_private_lb_security_group),
+            IpProtocol='-1',
+            SourceSecurityGroupId=Ref(self.ops),
+            FromPort='-1',
+            ToPort='-1',
+            DependsOn=self.ops
+        )
+
+        self.app_web_private_lb_security_groupIngressRule02 = ec2.SecurityGroupIngress(
+            "appApicSecurityGroupIngressRule02",
+            GroupId=Ref(self.app_web_private_lb_security_group),
             IpProtocol='-1',
             SourceSecurityGroupId=Ref(self.web_instance_security_group),
             FromPort='-1',

@@ -39,6 +39,9 @@ Parameters:
   AppServerEC2InstanceType:
     AllowedValues:
       - m3.large
+      - m3.xlarge
+      - m3.2xlarge
+      - m3.4xlarge
     Default: m3.large
     Description: Instance class for app server. Defines amount of CPU and Memory.
     Type: String
@@ -51,30 +54,77 @@ Parameters:
   MSSqlKeyPair:
     Description: Key pair to use to login to your mssql server
     Type: AWS::EC2::KeyPair::KeyName
+  MinScaleCapacity:
+    Default: '0'
+    Description: Number of Min servers to run
+    Type: String
   MssqlEc2InstanceType:
     AllowedValues:
       - r4.large
+      - r4.xlarge
+      - r4.2xlarge
+      - r4.4xlarge
+      - r4.8xlarge
     Default: r4.large
     Description: Instance class for rdp server. Defines amount of CPU and Memory.
     Type: String
   MssqlServerImageId:
     Default: ami-02cd86d8309ab34dd
     Type: String
-  RdpServerEC2InstanceType:
+  ProRdpServerEC2InstanceType:
     AllowedValues:
+      - c3.large
       - c3.xlarge
+      - c3.2xlarge
+      - c3.4xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
     Default: c3.xlarge
-    Description: Instance class for rdp server. Defines amount of CPU and Memory.
+    Description: Instance class for Pro rdp server. Defines amount of CPU and Memory.
     Type: String
-  RdpServerImageId:
-    Default: ami-00cdf3fbf60727983
+  ProRdpServerImageId:
+    Default: ami-076e3388927cd05f8
     Type: String
   RdpServerKeyPair:
     Description: Key pair to use to login to your Rdp server
     Type: AWS::EC2::KeyPair::KeyName
+  SMRdpServerImageId:
+    Default: ami-0798ef0fdc4e67d1b
+    Type: String
   ScaleCapacity:
     Default: '1'
-    Description: Number of api servers to run
+    Description: Number of servers to run
+    Type: String
+  SmRdpServerEC2InstanceType:
+    AllowedValues:
+      - c3.large
+      - c3.xlarge
+      - c3.2xlarge
+      - c3.4xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+    Default: c3.xlarge
+    Description: Instance class for SM rdp server. Defines amount of CPU and Memory.
+    Type: String
+  UERdpServerImageId:
+    Default: ami-027ea09961956c414
+    Type: String
+  UeRdpServerEC2InstanceType:
+    AllowedValues:
+      - c3.large
+      - c3.xlarge
+      - c3.2xlarge
+      - c3.4xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+    Default: c3.xlarge
+    Description: Instance class for UE rdp server. Defines amount of CPU and Memory.
     Type: String
   WebPortalServerImageId:
     Default: ami-0fb9d02d706b826c2
@@ -82,6 +132,9 @@ Parameters:
   WebServerEC2InstanceType:
     AllowedValues:
       - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
     Default: m4.large
     Description: Instance class for Web server. Defines amount of CPU and Memory.
     Type: String
@@ -101,7 +154,7 @@ Resources:
       HealthyThresholdCount: '4'
       Matcher:
         HttpCode: '200'
-      Name: AppApiTarget
+      Name: AppApiTarget01
       Port: !Ref 'ApiServerPort'
       Protocol: HTTP
       UnhealthyThresholdCount: '3'
@@ -124,6 +177,14 @@ Resources:
           IpProtocol: tcp
           SourceSecurityGroupId: !Ref 'AppRdpInstanceSecurityGroup'
           ToPort: '1433'
+        - FromPort: '55555'
+          IpProtocol: tcp
+          SourceSecurityGroupId: !Ref 'AppWebInstanceSecurityGroup'
+          ToPort: '55555'
+        - FromPort: '55555'
+          IpProtocol: tcp
+          SourceSecurityGroupId: !Ref 'AppRdpInstanceSecurityGroup'
+          ToPort: '55555'
         - FromPort: '-1'
           IpProtocol: '-1'
           SourceSecurityGroupId: !Ref 'OpsSecurityGroup'
@@ -146,13 +207,13 @@ Resources:
           ToPort: '-1'
       SecurityGroupIngress:
         - CidrIp: '0.0.0.0/0'
-          FromPort: '8888'
+          FromPort: '8696'
           IpProtocol: tcp
-          ToPort: '8888'
+          ToPort: '8696'
         - CidrIp: '0.0.0.0/0'
-          FromPort: '6666'
+          FromPort: '5696'
           IpProtocol: tcp
-          ToPort: '6666'
+          ToPort: '5696'
         - FromPort: '-1'
           IpProtocol: '-1'
           SourceSecurityGroupId: !Ref 'OpsSecurityGroup'
@@ -179,7 +240,7 @@ Resources:
       HealthCheckType: EC2
       LaunchConfigurationName: !Ref 'AppServerLaunchConfiguration'
       MaxSize: !Ref 'ScaleCapacity'
-      MinSize: !Ref 'ScaleCapacity'
+      MinSize: !Ref 'MinScaleCapacity'
       Tags:
         - Key: Name
           PropagateAtLaunch: 'true'
@@ -209,7 +270,15 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
+            VolumeSize: '50'
+            VolumeType: gp2
+        - DeviceName: xvdb
+          Ebs:
+            SnapshotId: snap-0ad6a6f4e37d7b998
             VolumeSize: '100'
+            VolumeType: gp2
+        - DeviceName: xvdca
+          VirtualName: ephemeral0
       ImageId: !Ref 'AppServerImageId'
       InstanceType: !Ref 'AppServerEC2InstanceType'
       KeyName: !Ref 'AppServerKeyPair'
@@ -287,15 +356,6 @@ Resources:
       InternetGatewayId: !Ref 'InternetGateway'
       VpcId: !Ref 'VPC'
     Type: AWS::EC2::VPCGatewayAttachment
-  Listener:
-    Properties:
-      DefaultActions:
-        - TargetGroupArn: !Ref 'AppApiTargetGroupApi'
-          Type: forward
-      LoadBalancerArn: !Ref 'LoadBalancer'
-      Port: '80'
-      Protocol: HTTP
-    Type: AWS::ElasticLoadBalancingV2::Listener
   Listener1:
     Properties:
       DefaultActions:
@@ -303,15 +363,6 @@ Resources:
           Type: forward
       LoadBalancerArn: !Ref 'LoadBalancer'
       Port: '8288'
-      Protocol: HTTP
-    Type: AWS::ElasticLoadBalancingV2::Listener
-  Listener2:
-    Properties:
-      DefaultActions:
-        - TargetGroupArn: !Ref 'AppApiTargetGroupApi'
-          Type: forward
-      LoadBalancerArn: !Ref 'LoadBalancer'
-      Port: '3389'
       Protocol: HTTP
     Type: AWS::ElasticLoadBalancingV2::Listener
   LoadBalancer:
@@ -354,6 +405,10 @@ Resources:
           FromPort: 3389
           IpProtocol: tcp
           ToPort: 3389
+        - CidrIp: '0.0.0.0/0'
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
       Tags:
         - Key: Name
           Value: !Join
@@ -374,7 +429,7 @@ Resources:
     Type: AWS::EC2::NetworkAcl
   PrivateNetworkAclEntryIn:
     Properties:
-      CidrBlock: 172.1.0.0/16
+      CidrBlock: '0.0.0.0/0'
       Egress: 'false'
       NetworkAclId: !Ref 'PrivateNetworkACL'
       Protocol: -1
@@ -383,7 +438,7 @@ Resources:
     Type: AWS::EC2::NetworkAclEntry
   PrivateNetworkAclEntryOut:
     Properties:
-      CidrBlock: 172.1.0.0/16
+      CidrBlock: '0.0.0.0/0'
       Egress: 'true'
       NetworkAclId: !Ref 'PrivateNetworkACL'
       Protocol: -1
@@ -450,6 +505,62 @@ Resources:
       RouteTableId: !Ref 'PrivateRouteTable'
       SubnetId: !Ref 'PrivateSubnet2'
     Type: AWS::EC2::SubnetRouteTableAssociation
+  ProRdpServerAutoscalingGroup:
+    Properties:
+      AvailabilityZones:
+        - !Select
+          - 0
+          - !GetAZs ''
+        - !Select
+          - 1
+          - !GetAZs ''
+      DesiredCapacity: !Ref 'ScaleCapacity'
+      HealthCheckGracePeriod: 300
+      HealthCheckType: EC2
+      LaunchConfigurationName: !Ref 'ProRdpServerLaunchConfiguration'
+      MaxSize: !Ref 'ScaleCapacity'
+      MinSize: !Ref 'MinScaleCapacity'
+      Tags:
+        - Key: Name
+          PropagateAtLaunch: 'true'
+          Value: !Join
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - pro-rdp-server-autoScaling
+      VPCZoneIdentifier:
+        - !Ref 'PublicSubnet1'
+        - !Ref 'PublicSubnet2'
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: 'true'
+      AutoScalingRollingUpdate:
+        MaxBatchSize: '1'
+        MinInstancesInService: '1'
+        PauseTime: PT5M
+        WaitOnResourceSignals: 'true'
+  ProRdpServerLaunchConfiguration:
+    Metadata:
+      AWS::CloudFormation::Init:
+        config: {}
+    Properties:
+      AssociatePublicIpAddress: 'true'
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: '40'
+            VolumeType: gp2
+        - DeviceName: xvdb
+          Ebs:
+            SnapshotId: snap-0e0e04671533fe363
+            VolumeSize: '100'
+            VolumeType: gp2
+      ImageId: !Ref 'ProRdpServerImageId'
+      InstanceType: !Ref 'ProRdpServerEC2InstanceType'
+      KeyName: !Ref 'RdpServerKeyPair'
+      SecurityGroups:
+        - !Ref 'AppRdpInstanceSecurityGroup'
+    Type: AWS::AutoScaling::LaunchConfiguration
   PublicRouteTable:
     Properties:
       Tags:
@@ -500,7 +611,36 @@ Resources:
       RouteTableId: !Ref 'PublicRouteTable'
       SubnetId: !Ref 'PublicSubnet2'
     Type: AWS::EC2::SubnetRouteTableAssociation
-  RdpServerAutoscalingGroup:
+  RouteToInternet:
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref 'InternetGateway'
+      RouteTableId: !Ref 'PublicRouteTable'
+    Type: AWS::EC2::Route
+  SMRdpServerLaunchConfiguration:
+    Metadata:
+      AWS::CloudFormation::Init:
+        config: {}
+    Properties:
+      AssociatePublicIpAddress: 'true'
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: '40'
+            VolumeType: gp2
+        - DeviceName: xvdb
+          Ebs:
+            SnapshotId: snap-0e0e04671533fe363
+            VolumeSize: '100'
+            VolumeType: gp2
+      ImageId: !Ref 'SMRdpServerImageId'
+      InstanceType: !Ref 'SmRdpServerEC2InstanceType'
+      KeyName: !Ref 'RdpServerKeyPair'
+      SecurityGroups:
+        - !Ref 'AppRdpInstanceSecurityGroup'
+    Type: AWS::AutoScaling::LaunchConfiguration
+  SmRdpServerAutoscalingGroup:
     Properties:
       AvailabilityZones:
         - !Select
@@ -512,19 +652,19 @@ Resources:
       DesiredCapacity: !Ref 'ScaleCapacity'
       HealthCheckGracePeriod: 300
       HealthCheckType: EC2
-      LaunchConfigurationName: !Ref 'RdpServerLaunchConfiguration'
+      LaunchConfigurationName: !Ref 'SMRdpServerLaunchConfiguration'
       MaxSize: !Ref 'ScaleCapacity'
-      MinSize: !Ref 'ScaleCapacity'
+      MinSize: !Ref 'MinScaleCapacity'
       Tags:
         - Key: Name
           PropagateAtLaunch: 'true'
           Value: !Join
             - '-'
             - - !Ref 'AWS::StackName'
-              - rdp-server-autoScaling
+              - sm-rdp-server-autoScaling
       VPCZoneIdentifier:
-        - !Ref 'PrivateSubnet1'
-        - !Ref 'PrivateSubnet2'
+        - !Ref 'PublicSubnet1'
+        - !Ref 'PublicSubnet2'
     Type: AWS::AutoScaling::AutoScalingGroup
     UpdatePolicy:
       AutoScalingReplacingUpdate:
@@ -534,28 +674,62 @@ Resources:
         MinInstancesInService: '1'
         PauseTime: PT5M
         WaitOnResourceSignals: 'true'
-  RdpServerLaunchConfiguration:
+  UERdpServerLaunchConfiguration:
     Metadata:
       AWS::CloudFormation::Init:
         config: {}
     Properties:
+      AssociatePublicIpAddress: 'true'
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
+            VolumeSize: '40'
+            VolumeType: gp2
+        - DeviceName: xvdb
+          Ebs:
+            SnapshotId: snap-0e0e04671533fe363
             VolumeSize: '100'
-      ImageId: !Ref 'RdpServerImageId'
-      InstanceType: !Ref 'RdpServerEC2InstanceType'
+            VolumeType: gp2
+      ImageId: !Ref 'UERdpServerImageId'
+      InstanceType: !Ref 'UeRdpServerEC2InstanceType'
       KeyName: !Ref 'RdpServerKeyPair'
       SecurityGroups:
         - !Ref 'AppRdpInstanceSecurityGroup'
     Type: AWS::AutoScaling::LaunchConfiguration
-  RouteToInternet:
-    DependsOn: InternetGatewayAttachment
+  UeRdpServerAutoscalingGroup:
     Properties:
-      DestinationCidrBlock: '0.0.0.0/0'
-      GatewayId: !Ref 'InternetGateway'
-      RouteTableId: !Ref 'PublicRouteTable'
-    Type: AWS::EC2::Route
+      AvailabilityZones:
+        - !Select
+          - 0
+          - !GetAZs ''
+        - !Select
+          - 1
+          - !GetAZs ''
+      DesiredCapacity: !Ref 'ScaleCapacity'
+      HealthCheckGracePeriod: 300
+      HealthCheckType: EC2
+      LaunchConfigurationName: !Ref 'UERdpServerLaunchConfiguration'
+      MaxSize: !Ref 'ScaleCapacity'
+      MinSize: !Ref 'MinScaleCapacity'
+      Tags:
+        - Key: Name
+          PropagateAtLaunch: 'true'
+          Value: !Join
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - ue-rdp-server-autoScaling
+      VPCZoneIdentifier:
+        - !Ref 'PublicSubnet1'
+        - !Ref 'PublicSubnet2'
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: 'true'
+      AutoScalingRollingUpdate:
+        MaxBatchSize: '1'
+        MinInstancesInService: '1'
+        PauseTime: PT5M
+        WaitOnResourceSignals: 'true'
   VPC:
     Properties:
       CidrBlock: 172.1.0.0/16
@@ -704,7 +878,7 @@ Resources:
       HealthCheckType: EC2
       LaunchConfigurationName: !Ref 'WebServerLaunchConfiguration'
       MaxSize: !Ref 'ScaleCapacity'
-      MinSize: !Ref 'ScaleCapacity'
+      MinSize: !Ref 'MinScaleCapacity'
       Tags:
         - Key: Name
           PropagateAtLaunch: 'true'
@@ -735,6 +909,7 @@ Resources:
         - DeviceName: /dev/sdb
           Ebs:
             VolumeSize: '200'
+            VolumeType: gp2
       ImageId: !Ref 'WebPortalServerImageId'
       InstanceType: !Ref 'WebServerEC2InstanceType'
       KeyName: !Ref 'WebServerKeyPair'
@@ -744,6 +919,7 @@ Resources:
   WebTargetGroupApi:
     Properties:
       HealthCheckIntervalSeconds: '30'
+      HealthCheckPath: /favicon.ico
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: '10'
       HealthyThresholdCount: '4'
@@ -755,6 +931,24 @@ Resources:
       UnhealthyThresholdCount: '3'
       VpcId: !Ref 'VPC'
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
+  appApicSecurityGroupIngressRule01:
+    DependsOn: OpsSecurityGroup
+    Properties:
+      FromPort: '-1'
+      GroupId: !Ref 'AppWebPrivateLoadBalanceSecurityGroup'
+      IpProtocol: '-1'
+      SourceSecurityGroupId: !Ref 'OpsSecurityGroup'
+      ToPort: '-1'
+    Type: AWS::EC2::SecurityGroupIngress
+  appApicSecurityGroupIngressRule02:
+    DependsOn: WebInstanceSecurityGroup
+    Properties:
+      FromPort: '-1'
+      GroupId: !Ref 'AppWebPrivateLoadBalanceSecurityGroup'
+      IpProtocol: '-1'
+      SourceSecurityGroupId: !Ref 'WebInstanceSecurityGroup'
+      ToPort: '-1'
+    Type: AWS::EC2::SecurityGroupIngress
   appRdpInstanceSecurityGroupIngressRule:
     DependsOn: AppRdpInstanceSecurityGroup
     Properties:
@@ -773,7 +967,7 @@ Resources:
       SourceSecurityGroupId: !Ref 'AppWebInstanceSecurityGroup'
       ToPort: '-1'
     Type: AWS::EC2::SecurityGroupIngress
-  appWebPrivateLbSecurityGroupIngressRule:
+  appWebPrivateLbSecurityGroupIngressRule03:
     DependsOn: AppRdpInstanceSecurityGroup
     Properties:
       FromPort: '-1'
@@ -787,6 +981,15 @@ Resources:
     Properties:
       FromPort: '-1'
       GroupId: !Ref 'WebInstanceSecurityGroup'
+      IpProtocol: '-1'
+      SourceSecurityGroupId: !Ref 'WebInstanceSecurityGroup'
+      ToPort: '-1'
+    Type: AWS::EC2::SecurityGroupIngress
+  webPublicSecurityGroupIngressRule:
+    DependsOn: WebInstanceSecurityGroup
+    Properties:
+      FromPort: '-1'
+      GroupId: !Ref 'WebPublicLoadBalanceSecurityGroup'
       IpProtocol: '-1'
       SourceSecurityGroupId: !Ref 'WebInstanceSecurityGroup'
       ToPort: '-1'

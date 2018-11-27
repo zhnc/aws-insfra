@@ -123,7 +123,7 @@ class VPC(MagicDict):
 
         self.private_network_acl_entry_in = ec2.NetworkAclEntry(
             "PrivateNetworkAclEntryIn",
-            CidrBlock="172.1.0.0/16",
+            CidrBlock="0.0.0.0/0",
             Egress=False,
             NetworkAclId=Ref(self.private_network_aCL),
             Protocol=-1,
@@ -133,7 +133,7 @@ class VPC(MagicDict):
 
         self.private_network_acl_entry_out = ec2.NetworkAclEntry(
             "PrivateNetworkAclEntryOut",
-            CidrBlock="172.1.0.0/16",
+            CidrBlock="0.0.0.0/0",
             Egress=True,
             NetworkAclId=Ref(self.private_network_aCL),
             Protocol=-1,

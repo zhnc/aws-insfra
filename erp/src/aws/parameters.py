@@ -59,21 +59,65 @@ class Parameters(MagicDict):
         #     Description="Number of days to store automated daily database backups for."
         # )
 
-        self.rdp_server_ec2_instance_type = Parameter(
-            "RdpServerEC2InstanceType",
+        self.pro_rdp_server_ec2_instance_type = Parameter(
+            "ProRdpServerEC2InstanceType",
             Type="String",
             AllowedValues=[
-                "c3.xlarge"
+                "c3.large",
+                "c3.xlarge",
+                "c3.2xlarge",
+                "c3.4xlarge",
+                "c4.large",
+                "c4.xlarge",
+                "c4.2xlarge",
+                "c4.4xlarge",
             ],
             Default="c3.xlarge",
-            Description="Instance class for rdp server. Defines amount of CPU and Memory."
+            Description="Instance class for Pro rdp server. Defines amount of CPU and Memory."
+        )
+
+        self.ue_rdp_server_ec2_instance_type = Parameter(
+            "UeRdpServerEC2InstanceType",
+            Type="String",
+            AllowedValues=[
+                "c3.large",
+                "c3.xlarge",
+                "c3.2xlarge",
+                "c3.4xlarge",
+                "c4.large",
+                "c4.xlarge",
+                "c4.2xlarge",
+                "c4.4xlarge",
+            ],
+            Default="c3.xlarge",
+            Description="Instance class for UE rdp server. Defines amount of CPU and Memory."
+        )
+
+        self.sm_rdp_server_ec2_instance_type = Parameter(
+            "SmRdpServerEC2InstanceType",
+            Type="String",
+            AllowedValues=[
+                "c3.large",
+                "c3.xlarge",
+                "c3.2xlarge",
+                "c3.4xlarge",
+                "c4.large",
+                "c4.xlarge",
+                "c4.2xlarge",
+                "c4.4xlarge",
+            ],
+            Default="c3.xlarge",
+            Description="Instance class for SM rdp server. Defines amount of CPU and Memory."
         )
 
         self.app_server_ec2_instance_type = Parameter(
             "AppServerEC2InstanceType",
             Type="String",
             AllowedValues=[
-                "m3.large"
+                "m3.large",
+                "m3.xlarge",
+                "m3.2xlarge",
+                "m3.4xlarge"
             ],
             Default="m3.large",
             Description="Instance class for app server. Defines amount of CPU and Memory."
@@ -83,7 +127,10 @@ class Parameters(MagicDict):
             "WebServerEC2InstanceType",
             Type="String",
             AllowedValues=[
-                "m4.large"
+                "m4.large",
+                "m4.xlarge",
+                "m4.2xlarge",
+                "m4.4xlarge"
             ],
             Default="m4.large",
             Description="Instance class for Web server. Defines amount of CPU and Memory."
@@ -93,7 +140,11 @@ class Parameters(MagicDict):
             "MssqlEc2InstanceType",
             Type="String",
             AllowedValues=[
-                "r4.large"
+                "r4.large",
+                "r4.xlarge",
+                "r4.2xlarge",
+                "r4.4xlarge",
+                "r4.8xlarge"
             ],
             Default="r4.large",
             Description="Instance class for rdp server. Defines amount of CPU and Memory."
@@ -134,11 +185,25 @@ class Parameters(MagicDict):
         )
 
         
-        self.RdpServerImageId = Parameter(
-            "RdpServerImageId",
+        self.ProRdpServerImageId = Parameter(
+            "ProRdpServerImageId",
             Type="String",
-            Default="ami-00cdf3fbf60727983"
+            Default="ami-076e3388927cd05f8"
         )
+
+        self.SMRdpServerImageId = Parameter(
+            "SMRdpServerImageId",
+            Type="String",
+            Default="ami-0798ef0fdc4e67d1b"
+        )
+
+        self.UERdpServerImageId = Parameter(
+            "UERdpServerImageId",
+            Type="String",
+            Default="ami-027ea09961956c414"
+        )
+
+        
 
         self.WebPortalServerImageId = Parameter(
             "WebPortalServerImageId",
@@ -156,5 +221,12 @@ class Parameters(MagicDict):
             "ScaleCapacity",
             Default="1",
             Type="String",
-            Description="Number of api servers to run",
+            Description="Number of servers to run",
+        )
+
+        self.MinCapacity = Parameter(
+            "MinScaleCapacity",
+            Default="0",
+            Type="String",
+            Description="Number of Min servers to run",
         )

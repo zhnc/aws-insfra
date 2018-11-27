@@ -46,7 +46,8 @@ class WebServerAutoScaling(MagicDict):
             Port=Ref(parameters.web_port),
             Protocol="HTTP",
             UnhealthyThresholdCount="3",
-            VpcId=Ref(vpc.vpc)
+            VpcId=Ref(vpc.vpc),
+            HealthCheckPath="/favicon.ico"
 
         )
 
@@ -125,7 +126,8 @@ class WebServerAutoScaling(MagicDict):
                 ec2.BlockDeviceMapping(
                     DeviceName="/dev/sdb",
                     Ebs=ec2.EBSBlockDevice(
-                        VolumeSize="200"
+                        VolumeSize="200",
+                        VolumeType="gp2"
                     )
                 ),
             ],
@@ -146,7 +148,7 @@ class WebServerAutoScaling(MagicDict):
             ],
 
             LaunchConfigurationName=Ref(self.launchConfig),
-            MinSize=Ref(parameters.ScaleCapacity),
+            MinSize=Ref(parameters.MinCapacity),
             MaxSize=Ref(parameters.ScaleCapacity),
             VPCZoneIdentifier=[Ref(vpc.private_subnet_1),
                                Ref(vpc.private_subnet_2)],

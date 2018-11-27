@@ -3,7 +3,7 @@ from troposphere import Parameter, Ref, Template
 from troposphere import cloudformation, autoscaling
 from troposphere.autoscaling import AutoScalingGroup, Tag
 from troposphere.autoscaling import LaunchConfiguration
-from troposphere.elasticloadbalancingv2 import LoadBalancer, TargetGroup, Matcher, Listener, Action
+from troposphere.elasticloadbalancing import LoadBalancer
 from troposphere.policies import (
     AutoScalingReplacingUpdate, AutoScalingRollingUpdate, UpdatePolicy
 )
@@ -12,110 +12,19 @@ import troposphere.elasticloadbalancing as elb
 from magicdict import MagicDict
 
 
-class AppServerAutoScaling(MagicDict):
+
+
+class SMRdpServerAutoScaling(MagicDict):
     def __init__(self, vpc, parameters, securitygroup):
         """
         :type vpc VPC
         :type parameters Parameters
         :type securitygroup SecurityGroup
         """
-        super(AppServerAutoScaling, self).__init__()
-
-        self.loadBalancer = LoadBalancer(
-            "LoadBalancer",
-
-            Subnets=[Ref(vpc.private_subnet_1),
-                     Ref(vpc.private_subnet_2)],
-            # SubnetMappings=[],
-            # HealthCheck=elb.HealthCheck(
-            #     Target="HTTP:80/",
-            #     HealthyThreshold="5",
-            #     UnhealthyThreshold="2",
-            #     Interval="20",
-            #     Timeout="15",
-            # ),
-            # Listeners=[
-            #     elb.Listener(
-            #         InstancePort="80",
-            #         InstanceProtocol="HTTP",
-            #     ),
-            # ],
-            # CrossZone=True,
-            SecurityGroups=[
-                Ref(securitygroup.app_web_private_lb_security_group)],
-            Name="app-api-lb",
-            Scheme="internal",
-            Type="application",
-            # LoadBalancerPort=80
-        )
-
-        self.targetGroup = TargetGroup(
-            "AppApiTargetGroupApi",
-            HealthCheckIntervalSeconds="30",
-            HealthCheckProtocol="HTTP",
-            HealthCheckTimeoutSeconds="10",
-            HealthyThresholdCount="4",
-            Matcher=Matcher(
-                HttpCode="200"),
-            Name="AppApiTarget01",
-            Port=Ref(parameters.app_api_port),
-            Protocol="HTTP",
-            # Targets=[elb.TargetDescription(
-            #     Id=Ref(ApiInstance),
-            #     Port=Ref(apiport_param))],
-            UnhealthyThresholdCount="3",
-            VpcId=Ref(vpc.vpc)
-
-        )
-
-        # self.listener = Listener(
-        #     "Listener",
-        #     Port="8288",
-        #     Protocol="HTTP",
-        #     LoadBalancerArn=Ref(self.loadBalancer),
-        #     DefaultActions=[Action(
-        #         Type="forward",
-        #         TargetGroupArn=Ref(self.targetGroup)
-        #     )]
-        # )
-
-        self.listener1 = Listener(
-            "Listener1",
-            Port="8288",
-            Protocol="HTTP",
-            LoadBalancerArn=Ref(self.loadBalancer),
-            DefaultActions=[Action(
-                Type="forward",
-                TargetGroupArn=Ref(self.targetGroup)
-            )]
-        )
-
-        # self.listener2 = Listener(
-        #     "Listener2",
-        #     Port="3389",
-        #     Protocol="HTTP",
-        #     LoadBalancerArn=Ref(self.loadBalancer),
-        #     DefaultActions=[Action(
-        #         Type="forward",
-        #         TargetGroupArn=Ref(self.targetGroup)
-        #     )]
-        # )
-
-        # template.add_resource(elb.ListenerRule(
-        #     "ListenerRuleApi",
-        #     ListenerArn=Ref(Listener),
-        #     Conditions=[elb.Condition(
-        #         Field="path-pattern",
-        #         Values=["/api/*"])],
-        #     Actions=[elb.Action(
-        #         Type="forward",
-        #         TargetGroupArn=Ref(TargetGroupApi)
-        #     )],
-        #     Priority="1"
-        # ))
+        super(SMRdpServerAutoScaling, self).__init__()
 
         self.launchConfig = LaunchConfiguration(
-            "AppServerLaunchConfiguration",
+            "SMRdpServerLaunchConfiguration",
             Metadata=autoscaling.Metadata(
                 cloudformation.Init({
                     "config": cloudformation.InitConfig(
@@ -161,13 +70,13 @@ class AppServerAutoScaling(MagicDict):
             #     "    --stack ", Ref("AWS::StackName"),
             #     "    --region ", Ref("AWS::Region"), "\n"
             # ])),
-            ImageId=Ref(parameters.AppServerImageId),
-            KeyName=Ref(parameters.app_server_key_pair),
+            ImageId=Ref(parameters.SMRdpServerImageId),
+            KeyName=Ref(parameters.rdp_server_key_pair),
             BlockDeviceMappings=[
                 ec2.BlockDeviceMapping(
                     DeviceName="/dev/sda1",
                     Ebs=ec2.EBSBlockDevice(
-                        VolumeSize="50",
+                        VolumeSize="40",
                         VolumeType="gp2"
                     )
                 ),
@@ -176,25 +85,22 @@ class AppServerAutoScaling(MagicDict):
                     Ebs=ec2.EBSBlockDevice(
                         VolumeSize="100",
                         VolumeType="gp2",
-                        SnapshotId='snap-0ad6a6f4e37d7b998'
+                        SnapshotId="snap-0e0e04671533fe363"
                     )
-                ),
-                ec2.BlockDeviceMapping(
-                    DeviceName="xvdca",
-                    VirtualName="ephemeral0"
                 )
             ],
             SecurityGroups=[
-                Ref(securitygroup.app_web_instance_security_group)],
-            InstanceType=Ref(parameters.app_server_ec2_instance_type),
+                Ref(securitygroup.app_rdp_instance_security_group)],
+            InstanceType=Ref(parameters.sm_rdp_server_ec2_instance_type),
+            AssociatePublicIpAddress=True
         )
         self.AutoscalingGroup = AutoScalingGroup(
-            "AppServerAutoscalingGroup",
+            "SmRdpServerAutoscalingGroup",
             DesiredCapacity=Ref(parameters.ScaleCapacity),
             Tags=[
                 {
-                    'Key': 'Name',
-                    'Value': Join("-", [Ref("AWS::StackName"), "app-server-autoScaling"]),
+                    'Key' : 'Name',
+                    'Value' : Join("-", [Ref("AWS::StackName"), "sm-rdp-server-autoScaling"]),
                     'PropagateAtLaunch':'true'
                 }
                 # Name=Join("-", [Ref("AWS::StackName"), "rdp-server-autoScaling"]),
@@ -203,10 +109,9 @@ class AppServerAutoScaling(MagicDict):
             LaunchConfigurationName=Ref(self.launchConfig),
             MinSize=Ref(parameters.MinCapacity),
             MaxSize=Ref(parameters.ScaleCapacity),
-            VPCZoneIdentifier=[Ref(vpc.private_subnet_1),
-                               Ref(vpc.private_subnet_2)],
-            # LoadBalancerNames=[Ref(self.loadBalancer)],
-            TargetGroupARNs=[Ref(self.targetGroup)],
+            VPCZoneIdentifier=[Ref(vpc.public_subnet_1),
+                               Ref(vpc.public_subnet_2)],
+            # LoadBalancerNames=[Ref(LoadBalancer)],
             AvailabilityZones=[Select(0, GetAZs()),
                                Select(1, GetAZs())],
             HealthCheckType="EC2",

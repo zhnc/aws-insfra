@@ -8,7 +8,9 @@ from parameters import Parameters
 from vpc import VPC
 from securitygroup import SecurityGroup
 from ecs import ECS
-from RdpServerAutoScaling import RdpServerAutoScaling
+from ProRdpServerAutoScaling import ProRdpServerAutoScaling
+from UERdpServerAutoScaling import UERdpServerAutoScaling
+from SMRdpServerAutoScaling import SMRdpServerAutoScaling
 from AppServerAutoScaling import AppServerAutoScaling
 from WebServerAutoScaling import WebServerAutoScaling
 
@@ -64,8 +66,15 @@ def main():
     for res in securityGroup.values():
         template.add_resource(res)
 
-    rdpServerAutoScaling = RdpServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
-    for res in rdpServerAutoScaling.values():
+    proRdpServerAutoScaling = ProRdpServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
+    for res in proRdpServerAutoScaling.values():
+        template.add_resource(res)
+
+    ueRdpServerAutoScaling = UERdpServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
+    for res in ueRdpServerAutoScaling.values():
+        template.add_resource(res)
+    smRdpServerAutoScaling = SMRdpServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
+    for res in smRdpServerAutoScaling.values():
         template.add_resource(res)
 
     appServerAutoScaling = AppServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
