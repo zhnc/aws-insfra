@@ -1,0 +1,9 @@
+[
+    {
+      "Description": "Windows 2012 R2 DC No License",
+      "Format": "ova",
+      "UserBucket": {
+          "S3Bucket": "poc-zhnc-formation",
+          "S3Key": "WindowsServer2012R2noLicense.ova"
+      }
+  }]

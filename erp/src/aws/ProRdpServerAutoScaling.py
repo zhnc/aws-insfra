@@ -102,6 +102,16 @@ class ProRdpServerAutoScaling(MagicDict):
                     'Key' : 'Name',
                     'Value' : Join("-", [Ref("AWS::StackName"), "pro-rdp-server-autoScaling"]),
                     'PropagateAtLaunch':'true'
+                },
+                {
+                    'Key' : 'PID',
+                    'Value' : 'PRO',
+                    'PropagateAtLaunch':'true'
+                },
+                {
+                    'Key' : 'Replica',
+                    'Value' : '1',
+                    'PropagateAtLaunch':'true'
                 }
                 # Name=Join("-", [Ref("AWS::StackName"), "rdp-server-autoScaling"]),
             ],

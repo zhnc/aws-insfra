@@ -102,6 +102,16 @@ class UERdpServerAutoScaling(MagicDict):
                     'Key' : 'Name',
                     'Value' : Join("-", [Ref("AWS::StackName"), "ue-rdp-server-autoScaling"]),
                     'PropagateAtLaunch':'true'
+                },
+                {
+                    'Key' : 'PID',
+                    'Value' : 'UE',
+                    'PropagateAtLaunch':'true'
+                },
+                {
+                    'Key' : 'Replica',
+                    'Value' : '1',
+                    'PropagateAtLaunch':'true'
                 }
                 # Name=Join("-", [Ref("AWS::StackName"), "rdp-server-autoScaling"]),
             ],

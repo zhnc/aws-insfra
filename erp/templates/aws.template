@@ -527,6 +527,12 @@ Resources:
             - '-'
             - - !Ref 'AWS::StackName'
               - pro-rdp-server-autoScaling
+        - Key: PID
+          PropagateAtLaunch: 'true'
+          Value: PRO
+        - Key: Replica
+          PropagateAtLaunch: 'true'
+          Value: '1'
       VPCZoneIdentifier:
         - !Ref 'PublicSubnet1'
         - !Ref 'PublicSubnet2'
@@ -662,6 +668,12 @@ Resources:
             - '-'
             - - !Ref 'AWS::StackName'
               - sm-rdp-server-autoScaling
+        - Key: PID
+          PropagateAtLaunch: 'true'
+          Value: SM
+        - Key: Replica
+          PropagateAtLaunch: 'true'
+          Value: '1'
       VPCZoneIdentifier:
         - !Ref 'PublicSubnet1'
         - !Ref 'PublicSubnet2'
@@ -718,6 +730,12 @@ Resources:
             - '-'
             - - !Ref 'AWS::StackName'
               - ue-rdp-server-autoScaling
+        - Key: PID
+          PropagateAtLaunch: 'true'
+          Value: UE
+        - Key: Replica
+          PropagateAtLaunch: 'true'
+          Value: '1'
       VPCZoneIdentifier:
         - !Ref 'PublicSubnet1'
         - !Ref 'PublicSubnet2'
@@ -873,7 +891,7 @@ Resources:
         - !Select
           - 1
           - !GetAZs ''
-      DesiredCapacity: !Ref 'ScaleCapacity'
+      DesiredCapacity: 0
       HealthCheckGracePeriod: 300
       HealthCheckType: EC2
       LaunchConfigurationName: !Ref 'WebServerLaunchConfiguration'

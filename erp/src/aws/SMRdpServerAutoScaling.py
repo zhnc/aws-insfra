@@ -102,6 +102,16 @@ class SMRdpServerAutoScaling(MagicDict):
                     'Key' : 'Name',
                     'Value' : Join("-", [Ref("AWS::StackName"), "sm-rdp-server-autoScaling"]),
                     'PropagateAtLaunch':'true'
+                },
+                {
+                    'Key' : 'PID',
+                    'Value' : 'SM',
+                    'PropagateAtLaunch':'true'
+                },
+                {
+                    'Key' : 'Replica',
+                    'Value' : '1',
+                    'PropagateAtLaunch':'true'
                 }
                 # Name=Join("-", [Ref("AWS::StackName"), "rdp-server-autoScaling"]),
             ],

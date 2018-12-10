@@ -137,7 +137,7 @@ class WebServerAutoScaling(MagicDict):
         )
         self.AutoscalingGroup = AutoScalingGroup(
             "WebServerAutoscalingGroup",
-            DesiredCapacity=Ref(parameters.ScaleCapacity),
+            DesiredCapacity= 0, #Ref(parameters.ScaleCapacity),
             Tags=[
                 {
                     'Key': 'Name',
