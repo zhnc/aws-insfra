@@ -5,3 +5,21 @@ aws iam put-role-policy --role-name vmimport --policy-name vmimport --policy-doc
 aws ec2 import-image --description "Windows 2012 R2 DC No License" --license-type BYOL --disk-containers file://containers.json
 
 aws ec2 describe-import-image-tasks --import-task-ids import-ami-08b5c4f70a4f688ae
+
+
+
+
+aws ec2 describe-reserved-instances-offerings --profile bj --instance-type c4.2xlarge --product-description "Linux/UNIX" --instance-tenancy default --filters Name=duration,Values=31536000 Name=scope,Values=Region --output json
+
+fabb75a0-a850-4a83-98ee-679d23e3bac3
+
+aws ec2 purchase-reserved-instances-offering --reserved-instances-offering-id fabb75a0-a850-4a83-98ee-679d23e3bac3 --instance-count 1 --profile bj
+
+aws ec2 describe-reserved-instances-offerings --profile bj --instance-type c3.2xlarge --product-description "Linux/UNIX" --instance-tenancy default --filters Name=duration,Values=31536000 Name=scope,Values=Region --output json --region cn-north-1
+
+d8283b00-a57f-4adf-87ca-eec39875734e
+
+aws ec2 purchase-reserved-instances-offering --reserved-instances-offering-id d8283b00-a57f-4adf-87ca-eec39875734e --instance-count 1 --profile bj --region cn-north-1
+
+
+aws ec2 purchase-reserved-instances-offering --reserved-instances-offering-id 7ce94c0d-c4f7-4f54-8901-ef5da79d2b5b --instance-count 1 --profile bj --region cn-north-1

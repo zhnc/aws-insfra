@@ -38,11 +38,11 @@ Parameters:
     Type: String
   AppServerEC2InstanceType:
     AllowedValues:
-      - m3.large
-      - m3.xlarge
-      - m3.2xlarge
-      - m3.4xlarge
-    Default: m3.large
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+    Default: m4.large
     Description: Instance class for app server. Defines amount of CPU and Memory.
     Type: String
   AppServerImageId:
@@ -73,15 +73,15 @@ Parameters:
     Type: String
   ProRdpServerEC2InstanceType:
     AllowedValues:
-      - c3.large
-      - c3.xlarge
-      - c3.2xlarge
-      - c3.4xlarge
       - c4.large
       - c4.xlarge
       - c4.2xlarge
       - c4.4xlarge
-    Default: c3.xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+    Default: c4.xlarge
     Description: Instance class for Pro rdp server. Defines amount of CPU and Memory.
     Type: String
   ProRdpServerImageId:
@@ -99,15 +99,15 @@ Parameters:
     Type: String
   SmRdpServerEC2InstanceType:
     AllowedValues:
-      - c3.large
-      - c3.xlarge
-      - c3.2xlarge
-      - c3.4xlarge
       - c4.large
       - c4.xlarge
       - c4.2xlarge
       - c4.4xlarge
-    Default: c3.xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+    Default: c4.xlarge
     Description: Instance class for SM rdp server. Defines amount of CPU and Memory.
     Type: String
   UERdpServerImageId:
@@ -115,15 +115,15 @@ Parameters:
     Type: String
   UeRdpServerEC2InstanceType:
     AllowedValues:
-      - c3.large
-      - c3.xlarge
-      - c3.2xlarge
-      - c3.4xlarge
       - c4.large
       - c4.xlarge
       - c4.2xlarge
       - c4.4xlarge
-    Default: c3.xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+    Default: c4.xlarge
     Description: Instance class for UE rdp server. Defines amount of CPU and Memory.
     Type: String
   WebPortalServerImageId:
@@ -146,20 +146,6 @@ Parameters:
     Description: TCP/IP port of the web server
     Type: String
 Resources:
-  AppApiTargetGroupApi:
-    Properties:
-      HealthCheckIntervalSeconds: '30'
-      HealthCheckProtocol: HTTP
-      HealthCheckTimeoutSeconds: '10'
-      HealthyThresholdCount: '4'
-      Matcher:
-        HttpCode: '200'
-      Name: AppApiTarget01
-      Port: !Ref 'ApiServerPort'
-      Protocol: HTTP
-      UnhealthyThresholdCount: '3'
-      VpcId: !Ref 'VPC'
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
   AppDBSecurityGroup:
     Properties:
       GroupDescription: App DB security group
@@ -197,6 +183,14 @@ Resources:
               - ' App DB security group'
       VpcId: !Ref 'VPC'
     Type: AWS::EC2::SecurityGroup
+  AppIISTargetGroupApi:
+    Properties:
+      Name: AppApiTarget03
+      Port: !Ref 'ApiServerPort'
+      Protocol: TCP
+      UnhealthyThresholdCount: '3'
+      VpcId: !Ref 'VPC'
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
   AppRdpInstanceSecurityGroup:
     Properties:
       GroupDescription: App RDP Instance security group
@@ -247,9 +241,9 @@ Resources:
           Value: !Join
             - '-'
             - - !Ref 'AWS::StackName'
-              - app-server-autoScaling
+              - iis-server-autoScaling
       TargetGroupARNs:
-        - !Ref 'AppApiTargetGroupApi'
+        - !Ref 'AppIISTargetGroupApi'
       VPCZoneIdentifier:
         - !Ref 'PrivateSubnet1'
         - !Ref 'PrivateSubnet2'
@@ -267,18 +261,6 @@ Resources:
       AWS::CloudFormation::Init:
         config: {}
     Properties:
-      BlockDeviceMappings:
-        - DeviceName: /dev/sda1
-          Ebs:
-            VolumeSize: '50'
-            VolumeType: gp2
-        - DeviceName: xvdb
-          Ebs:
-            SnapshotId: snap-0ad6a6f4e37d7b998
-            VolumeSize: '100'
-            VolumeType: gp2
-        - DeviceName: xvdca
-          VirtualName: ephemeral0
       ImageId: !Ref 'AppServerImageId'
       InstanceType: !Ref 'AppServerEC2InstanceType'
       KeyName: !Ref 'AppServerKeyPair'
@@ -359,22 +341,22 @@ Resources:
   Listener1:
     Properties:
       DefaultActions:
-        - TargetGroupArn: !Ref 'AppApiTargetGroupApi'
+        - TargetGroupArn: !Ref 'AppIISTargetGroupApi'
           Type: forward
       LoadBalancerArn: !Ref 'LoadBalancer'
       Port: '8288'
-      Protocol: HTTP
+      Protocol: TCP
     Type: AWS::ElasticLoadBalancingV2::Listener
   LoadBalancer:
     Properties:
-      Name: app-api-lb
-      Scheme: internal
-      SecurityGroups:
-        - !Ref 'AppWebPrivateLoadBalanceSecurityGroup'
-      Subnets:
-        - !Ref 'PrivateSubnet1'
-        - !Ref 'PrivateSubnet2'
-      Type: application
+      Name: app-iis-nlb-03
+      Scheme: internet-facing
+      SubnetMappings:
+        - AllocationId: !GetAtt 'eipA.AllocationId'
+          SubnetId: !Ref 'PublicSubnet1'
+        - AllocationId: !GetAtt 'eipB.AllocationId'
+          SubnetId: !Ref 'PublicSubnet2'
+      Type: network
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
   Nat:
     DependsOn: NatEip
@@ -391,6 +373,12 @@ Resources:
       DestinationCidrBlock: '0.0.0.0/0'
       NatGatewayId: !Ref 'Nat'
       RouteTableId: !Ref 'PrivateRouteTable'
+    Type: AWS::EC2::Route
+  NatRoute3:
+    Properties:
+      DestinationCidrBlock: '0.0.0.0/0'
+      NatGatewayId: !Ref 'Nat'
+      RouteTableId: !Ref 'PrivateWebRouteTable'
     Type: AWS::EC2::Route
   OpsSecurityGroup:
     Properties:
@@ -427,6 +415,16 @@ Resources:
               - -private-nacl
       VpcId: !Ref 'VPC'
     Type: AWS::EC2::NetworkAcl
+  PrivateNetworkACL3:
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -private-nacl-3
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::NetworkAcl
   PrivateNetworkAclEntryIn:
     Properties:
       CidrBlock: '0.0.0.0/0'
@@ -434,7 +432,16 @@ Resources:
       NetworkAclId: !Ref 'PrivateNetworkACL'
       Protocol: -1
       RuleAction: allow
-      RuleNumber: 200
+      RuleNumber: 100
+    Type: AWS::EC2::NetworkAclEntry
+  PrivateNetworkAclEntryIn3:
+    Properties:
+      CidrBlock: '0.0.0.0/0'
+      Egress: 'false'
+      NetworkAclId: !Ref 'PrivateNetworkACL3'
+      Protocol: -1
+      RuleAction: allow
+      RuleNumber: 100
     Type: AWS::EC2::NetworkAclEntry
   PrivateNetworkAclEntryOut:
     Properties:
@@ -443,7 +450,16 @@ Resources:
       NetworkAclId: !Ref 'PrivateNetworkACL'
       Protocol: -1
       RuleAction: allow
-      RuleNumber: 200
+      RuleNumber: 100
+    Type: AWS::EC2::NetworkAclEntry
+  PrivateNetworkAclEntryOut3:
+    Properties:
+      CidrBlock: '0.0.0.0/0'
+      Egress: 'true'
+      NetworkAclId: !Ref 'PrivateNetworkACL3'
+      Protocol: -1
+      RuleAction: allow
+      RuleNumber: 100
     Type: AWS::EC2::NetworkAclEntry
   PrivateRouteTable:
     Properties:
@@ -505,6 +521,66 @@ Resources:
       RouteTableId: !Ref 'PrivateRouteTable'
       SubnetId: !Ref 'PrivateSubnet2'
     Type: AWS::EC2::SubnetRouteTableAssociation
+  PrivateSubnet3:
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      CidrBlock: 172.1.3.0/24
+      MapPublicIpOnLaunch: 'false'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -private-subnet-3
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PrivateSubnet3NetworkAclAssociation:
+    Properties:
+      NetworkAclId: !Ref 'PrivateNetworkACL3'
+      SubnetId: !Ref 'PrivateSubnet3'
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+  PrivateSubnet3RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateWebRouteTable'
+      SubnetId: !Ref 'PrivateSubnet3'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PrivateSubnet4:
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ''
+      CidrBlock: 172.1.4.0/24
+      MapPublicIpOnLaunch: 'false'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -private-subnet-4
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PrivateSubnet4NetworkAclAssociation:
+    Properties:
+      NetworkAclId: !Ref 'PrivateNetworkACL3'
+      SubnetId: !Ref 'PrivateSubnet4'
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+  PrivateSubnet4RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateWebRouteTable'
+      SubnetId: !Ref 'PrivateSubnet4'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PrivateWebRouteTable:
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - private-web-route-table
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::RouteTable
   ProRdpServerAutoscalingGroup:
     Properties:
       AvailabilityZones:
@@ -554,13 +630,9 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
-            VolumeSize: '40'
+            VolumeSize: '60'
             VolumeType: gp2
-        - DeviceName: xvdb
-          Ebs:
-            SnapshotId: snap-0e0e04671533fe363
-            VolumeSize: '100'
-            VolumeType: gp2
+      IamInstanceProfile: ec2-log-role
       ImageId: !Ref 'ProRdpServerImageId'
       InstanceType: !Ref 'ProRdpServerEC2InstanceType'
       KeyName: !Ref 'RdpServerKeyPair'
@@ -633,13 +705,9 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
-            VolumeSize: '40'
+            VolumeSize: '60'
             VolumeType: gp2
-        - DeviceName: xvdb
-          Ebs:
-            SnapshotId: snap-0e0e04671533fe363
-            VolumeSize: '100'
-            VolumeType: gp2
+      IamInstanceProfile: ec2-log-role
       ImageId: !Ref 'SMRdpServerImageId'
       InstanceType: !Ref 'SmRdpServerEC2InstanceType'
       KeyName: !Ref 'RdpServerKeyPair'
@@ -695,13 +763,9 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
-            VolumeSize: '40'
+            VolumeSize: '60'
             VolumeType: gp2
-        - DeviceName: xvdb
-          Ebs:
-            SnapshotId: snap-0e0e04671533fe363
-            VolumeSize: '100'
-            VolumeType: gp2
+      IamInstanceProfile: ec2-log-role
       ImageId: !Ref 'UERdpServerImageId'
       InstanceType: !Ref 'UeRdpServerEC2InstanceType'
       KeyName: !Ref 'RdpServerKeyPair'
@@ -891,7 +955,7 @@ Resources:
         - !Select
           - 1
           - !GetAZs ''
-      DesiredCapacity: 0
+      DesiredCapacity: !Ref 'ScaleCapacity'
       HealthCheckGracePeriod: 300
       HealthCheckType: EC2
       LaunchConfigurationName: !Ref 'WebServerLaunchConfiguration'
@@ -907,8 +971,8 @@ Resources:
       TargetGroupARNs:
         - !Ref 'WebTargetGroupApi'
       VPCZoneIdentifier:
-        - !Ref 'PrivateSubnet1'
-        - !Ref 'PrivateSubnet2'
+        - !Ref 'PrivateSubnet3'
+        - !Ref 'PrivateSubnet4'
     Type: AWS::AutoScaling::AutoScalingGroup
     UpdatePolicy:
       AutoScalingReplacingUpdate:
@@ -923,11 +987,7 @@ Resources:
       AWS::CloudFormation::Init:
         config: {}
     Properties:
-      BlockDeviceMappings:
-        - DeviceName: /dev/sdb
-          Ebs:
-            VolumeSize: '200'
-            VolumeType: gp2
+      IamInstanceProfile: ec2-log-role
       ImageId: !Ref 'WebPortalServerImageId'
       InstanceType: !Ref 'WebServerEC2InstanceType'
       KeyName: !Ref 'WebServerKeyPair'
@@ -994,6 +1054,14 @@ Resources:
       SourceSecurityGroupId: !Ref 'AppRdpInstanceSecurityGroup'
       ToPort: '-1'
     Type: AWS::EC2::SecurityGroupIngress
+  eipA:
+    Properties:
+      Domain: vpc
+    Type: AWS::EC2::EIP
+  eipB:
+    Properties:
+      Domain: vpc
+    Type: AWS::EC2::EIP
   webInstanceSecurityGroupIngressRule:
     DependsOn: WebInstanceSecurityGroup
     Properties:

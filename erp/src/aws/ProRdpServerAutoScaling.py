@@ -72,20 +72,13 @@ class ProRdpServerAutoScaling(MagicDict):
             # ])),
             ImageId=Ref(parameters.ProRdpServerImageId),
             KeyName=Ref(parameters.rdp_server_key_pair),
+            IamInstanceProfile="ec2-log-role",
             BlockDeviceMappings=[
                 ec2.BlockDeviceMapping(
                     DeviceName="/dev/sda1",
                     Ebs=ec2.EBSBlockDevice(
-                        VolumeSize="40",
+                        VolumeSize="60",
                         VolumeType="gp2"
-                    )
-                ),
-                ec2.BlockDeviceMapping(
-                    DeviceName="xvdb",
-                    Ebs=ec2.EBSBlockDevice(
-                        VolumeSize="100",
-                        VolumeType="gp2",
-                        SnapshotId="snap-0e0e04671533fe363"
                     )
                 )
             ],

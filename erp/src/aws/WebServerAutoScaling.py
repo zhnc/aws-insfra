@@ -31,7 +31,7 @@ class WebServerAutoScaling(MagicDict):
             Name="web-lb",
             Scheme="internet-facing",
             Type="application",
-            
+
         )
 
         self.targetGroup = TargetGroup(
@@ -122,22 +122,23 @@ class WebServerAutoScaling(MagicDict):
             # ])),
             ImageId=Ref(parameters.WebPortalServerImageId),
             KeyName=Ref(parameters.web_server_key_pair),
-            BlockDeviceMappings=[
-                ec2.BlockDeviceMapping(
-                    DeviceName="/dev/sdb",
-                    Ebs=ec2.EBSBlockDevice(
-                        VolumeSize="200",
-                        VolumeType="gp2"
-                    )
-                ),
-            ],
+            IamInstanceProfile="ec2-log-role",
+            # BlockDeviceMappings=[
+            #     ec2.BlockDeviceMapping(
+            #         DeviceName="/dev/sdb",
+            #         Ebs=ec2.EBSBlockDevice(
+            #             VolumeSize="200",
+            #             VolumeType="gp2"
+            #         )
+            #     ),
+            # ],
             SecurityGroups=[
                 Ref(securitygroup.web_instance_security_group)],
             InstanceType=Ref(parameters.web_server_ec2_instance_type),
         )
         self.AutoscalingGroup = AutoScalingGroup(
             "WebServerAutoscalingGroup",
-            DesiredCapacity= 0, #Ref(parameters.ScaleCapacity),
+            DesiredCapacity=Ref(parameters.ScaleCapacity),
             Tags=[
                 {
                     'Key': 'Name',
@@ -150,8 +151,8 @@ class WebServerAutoScaling(MagicDict):
             LaunchConfigurationName=Ref(self.launchConfig),
             MinSize=Ref(parameters.MinCapacity),
             MaxSize=Ref(parameters.ScaleCapacity),
-            VPCZoneIdentifier=[Ref(vpc.private_subnet_1),
-                               Ref(vpc.private_subnet_2)],
+            VPCZoneIdentifier=[Ref(vpc.private_subnet_3),
+                               Ref(vpc.private_subnet_4)],
             # LoadBalancerNames=[Ref(self.loadBalancer)],
             TargetGroupARNs=[Ref(self.targetGroup)],
             AvailabilityZones=[Select(0, GetAZs()),

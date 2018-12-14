@@ -1,9 +1,9 @@
-from troposphere import Base64, Join, GetAZs, Tags, Select
+from troposphere import Base64, Join, GetAZs, Tags, Select, GetAtt
 from troposphere import Parameter, Ref, Template
 from troposphere import cloudformation, autoscaling
 from troposphere.autoscaling import AutoScalingGroup, Tag
 from troposphere.autoscaling import LaunchConfiguration
-from troposphere.elasticloadbalancingv2 import LoadBalancer, TargetGroup, Matcher, Listener, Action
+from troposphere.elasticloadbalancingv2 import LoadBalancer, TargetGroup, Matcher, Listener, Action, SubnetMapping
 from troposphere.policies import (
     AutoScalingReplacingUpdate, AutoScalingRollingUpdate, UpdatePolicy
 )
@@ -21,11 +21,23 @@ class AppServerAutoScaling(MagicDict):
         """
         super(AppServerAutoScaling, self).__init__()
 
+        self.eipA = ec2.EIP('eipA', Domain='vpc',)
+        self.eipB = ec2.EIP('eipB', Domain='vpc',)
+
         self.loadBalancer = LoadBalancer(
             "LoadBalancer",
-
-            Subnets=[Ref(vpc.private_subnet_1),
-                     Ref(vpc.private_subnet_2)],
+            SubnetMappings=[
+                SubnetMapping(
+                    AllocationId=GetAtt(self.eipA, 'AllocationId'),
+                    SubnetId=Ref(vpc.public_subnet_1)
+                ),
+                SubnetMapping(
+                    AllocationId=GetAtt(self.eipB, 'AllocationId'),
+                    SubnetId=Ref(vpc.public_subnet_2)
+                )
+            ],
+            # Subnets=[Ref(vpc.private_subnet_1),
+            #          Ref(vpc.private_subnet_2)],
             # SubnetMappings=[],
             # HealthCheck=elb.HealthCheck(
             #     Target="HTTP:80/",
@@ -41,31 +53,30 @@ class AppServerAutoScaling(MagicDict):
             #     ),
             # ],
             # CrossZone=True,
-            SecurityGroups=[
-                Ref(securitygroup.app_web_private_lb_security_group)],
-            Name="app-api-lb",
-            Scheme="internal",
-            Type="application",
+            # SecurityGroups=[
+            #     Ref(securitygroup.web_public_security_group)],
+            Name="app-iis-nlb-03",
+            Scheme="internet-facing",
+            Type="network",
             # LoadBalancerPort=80
         )
 
         self.targetGroup = TargetGroup(
-            "AppApiTargetGroupApi",
-            HealthCheckIntervalSeconds="30",
-            HealthCheckProtocol="HTTP",
-            HealthCheckTimeoutSeconds="10",
-            HealthyThresholdCount="4",
-            Matcher=Matcher(
-                HttpCode="200"),
-            Name="AppApiTarget01",
+            "AppIISTargetGroupApi",
+            # HealthCheckIntervalSeconds="30",
+            # HealthCheckProtocol="HTTP",
+            # HealthCheckTimeoutSeconds="10",
+            # HealthyThresholdCount="4",
+            # Matcher=Matcher(
+            #     HttpCode="200"),
+            Name="AppApiTarget03",
             Port=Ref(parameters.app_api_port),
-            Protocol="HTTP",
+            Protocol="TCP",
             # Targets=[elb.TargetDescription(
             #     Id=Ref(ApiInstance),
             #     Port=Ref(apiport_param))],
             UnhealthyThresholdCount="3",
             VpcId=Ref(vpc.vpc)
-
         )
 
         # self.listener = Listener(
@@ -82,7 +93,7 @@ class AppServerAutoScaling(MagicDict):
         self.listener1 = Listener(
             "Listener1",
             Port="8288",
-            Protocol="HTTP",
+            Protocol="TCP",
             LoadBalancerArn=Ref(self.loadBalancer),
             DefaultActions=[Action(
                 Type="forward",
@@ -163,27 +174,23 @@ class AppServerAutoScaling(MagicDict):
             # ])),
             ImageId=Ref(parameters.AppServerImageId),
             KeyName=Ref(parameters.app_server_key_pair),
-            BlockDeviceMappings=[
-                ec2.BlockDeviceMapping(
-                    DeviceName="/dev/sda1",
-                    Ebs=ec2.EBSBlockDevice(
-                        VolumeSize="50",
-                        VolumeType="gp2"
-                    )
-                ),
-                ec2.BlockDeviceMapping(
-                    DeviceName="xvdb",
-                    Ebs=ec2.EBSBlockDevice(
-                        VolumeSize="100",
-                        VolumeType="gp2",
-                        SnapshotId='snap-0ad6a6f4e37d7b998'
-                    )
-                ),
-                ec2.BlockDeviceMapping(
-                    DeviceName="xvdca",
-                    VirtualName="ephemeral0"
-                )
-            ],
+            # BlockDeviceMappings=[
+            #     ec2.BlockDeviceMapping(
+            #         DeviceName="/dev/sda1",
+            #         Ebs=ec2.EBSBlockDevice(
+            #             VolumeSize="60",
+            #             VolumeType="gp2"
+            #         )
+            #     ),
+            #     ec2.BlockDeviceMapping(
+            #         DeviceName="xvdb",
+            #         Ebs=ec2.EBSBlockDevice(
+            #             VolumeSize="100",
+            #             VolumeType="gp2",
+            #             SnapshotId='snap-036ff5f3e9a5e248b'
+            #         )
+            #     )
+            # ],
             SecurityGroups=[
                 Ref(securitygroup.app_web_instance_security_group)],
             InstanceType=Ref(parameters.app_server_ec2_instance_type),
@@ -194,7 +201,7 @@ class AppServerAutoScaling(MagicDict):
             Tags=[
                 {
                     'Key': 'Name',
-                    'Value': Join("-", [Ref("AWS::StackName"), "app-server-autoScaling"]),
+                    'Value': Join("-", [Ref("AWS::StackName"), "iis-server-autoScaling"]),
                     'PropagateAtLaunch':'true'
                 }
                 # Name=Join("-", [Ref("AWS::StackName"), "rdp-server-autoScaling"]),

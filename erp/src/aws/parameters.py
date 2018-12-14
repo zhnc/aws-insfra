@@ -63,16 +63,16 @@ class Parameters(MagicDict):
             "ProRdpServerEC2InstanceType",
             Type="String",
             AllowedValues=[
-                "c3.large",
-                "c3.xlarge",
-                "c3.2xlarge",
-                "c3.4xlarge",
+                "c4.large",
+                "c4.xlarge",
+                "c4.2xlarge",
+                "c4.4xlarge",
                 "c4.large",
                 "c4.xlarge",
                 "c4.2xlarge",
                 "c4.4xlarge",
             ],
-            Default="c3.xlarge",
+            Default="c4.xlarge",
             Description="Instance class for Pro rdp server. Defines amount of CPU and Memory."
         )
 
@@ -80,16 +80,16 @@ class Parameters(MagicDict):
             "UeRdpServerEC2InstanceType",
             Type="String",
             AllowedValues=[
-                "c3.large",
-                "c3.xlarge",
-                "c3.2xlarge",
-                "c3.4xlarge",
+                "c4.large",
+                "c4.xlarge",
+                "c4.2xlarge",
+                "c4.4xlarge",
                 "c4.large",
                 "c4.xlarge",
                 "c4.2xlarge",
                 "c4.4xlarge",
             ],
-            Default="c3.xlarge",
+            Default="c4.xlarge",
             Description="Instance class for UE rdp server. Defines amount of CPU and Memory."
         )
 
@@ -97,16 +97,16 @@ class Parameters(MagicDict):
             "SmRdpServerEC2InstanceType",
             Type="String",
             AllowedValues=[
-                "c3.large",
-                "c3.xlarge",
-                "c3.2xlarge",
-                "c3.4xlarge",
+                "c4.large",
+                "c4.xlarge",
+                "c4.2xlarge",
+                "c4.4xlarge",
                 "c4.large",
                 "c4.xlarge",
                 "c4.2xlarge",
                 "c4.4xlarge",
             ],
-            Default="c3.xlarge",
+            Default="c4.xlarge",
             Description="Instance class for SM rdp server. Defines amount of CPU and Memory."
         )
 
@@ -114,12 +114,12 @@ class Parameters(MagicDict):
             "AppServerEC2InstanceType",
             Type="String",
             AllowedValues=[
-                "m3.large",
-                "m3.xlarge",
-                "m3.2xlarge",
-                "m3.4xlarge"
+                "m4.large",
+                "m4.xlarge",
+                "m4.2xlarge",
+                "m4.4xlarge"
             ],
-            Default="m3.large",
+            Default="m4.large",
             Description="Instance class for app server. Defines amount of CPU and Memory."
         )
 

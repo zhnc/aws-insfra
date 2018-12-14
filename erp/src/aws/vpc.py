@@ -128,7 +128,7 @@ class VPC(MagicDict):
             NetworkAclId=Ref(self.private_network_aCL),
             Protocol=-1,
             RuleAction="allow",
-            RuleNumber=200,
+            RuleNumber=100,
         )
 
         self.private_network_acl_entry_out = ec2.NetworkAclEntry(
@@ -138,7 +138,7 @@ class VPC(MagicDict):
             NetworkAclId=Ref(self.private_network_aCL),
             Protocol=-1,
             RuleAction="allow",
-            RuleNumber=200,
+            RuleNumber=100,
         )
 
         # public subnets
@@ -196,3 +196,108 @@ class VPC(MagicDict):
             DestinationCidrBlock='0.0.0.0/0',
             NatGatewayId=Ref(self.nat_1),
         )
+
+
+        #private web subnet
+        self.private_web_route_table = ec2.RouteTable(
+            "PrivateWebRouteTable",
+            VpcId=Ref(self.vpc),
+            Tags=Tags(
+                Name=Join("-", [Ref("AWS::StackName"), "private-web-route-table"]),
+            ),
+        )
+        self.private_subnet_3 = ec2.Subnet(
+            "PrivateSubnet3",
+            AvailabilityZone=Select(0, GetAZs()),
+            CidrBlock="172.1.3.0/24",
+            MapPublicIpOnLaunch=False,
+            Tags=Tags(
+                Name=Join("", [Ref("AWS::StackName"), "-private-subnet-3"]),
+            ),
+            VpcId=Ref(self.vpc),
+        )
+
+        self.private_subnet_3_route_table_association = ec2.SubnetRouteTableAssociation(
+            "PrivateSubnet3RouteTableAssociation",
+            RouteTableId=Ref(self.private_web_route_table),
+            SubnetId=Ref(self.private_subnet_3),
+        )
+
+        self.private_subnet_4 = ec2.Subnet(
+            "PrivateSubnet4",
+            AvailabilityZone=Select(1, GetAZs()),
+            CidrBlock="172.1.4.0/24",
+            MapPublicIpOnLaunch=False,
+            Tags=Tags(
+                Name=Join("", [Ref("AWS::StackName"), "-private-subnet-4"]),
+            ),
+            VpcId=Ref(self.vpc),
+        )
+
+        self.private_subnet_4_route_table_association = ec2.SubnetRouteTableAssociation(
+            "PrivateSubnet4RouteTableAssociation",
+            RouteTableId=Ref(self.private_web_route_table),
+            SubnetId=Ref(self.private_subnet_4),
+        )
+
+        self.private_network_aCL_3 = ec2.NetworkAcl(
+            "PrivateNetworkACL3",
+            VpcId=Ref(self.vpc),
+            Tags=Tags(
+                Name=Join("", [Ref("AWS::StackName"), "-private-nacl-3"]),
+            ),
+        )
+
+        self.private_subnet_3_network_acl_association = ec2.SubnetNetworkAclAssociation(
+            "PrivateSubnet3NetworkAclAssociation",
+            SubnetId=Ref(self.private_subnet_3),
+            NetworkAclId=Ref(self.private_network_aCL_3),
+        )
+
+        self.private_subnet_4_network_acl_association = ec2.SubnetNetworkAclAssociation(
+            "PrivateSubnet4NetworkAclAssociation",
+            SubnetId=Ref(self.private_subnet_4),
+            NetworkAclId=Ref(self.private_network_aCL_3),
+        )
+
+        self.private_network_acl_entry_in_3 = ec2.NetworkAclEntry(
+            "PrivateNetworkAclEntryIn3",
+            CidrBlock="0.0.0.0/0",
+            Egress=False,
+            NetworkAclId=Ref(self.private_network_aCL_3),
+            Protocol=-1,
+            RuleAction="allow",
+            RuleNumber=100,
+        )
+
+        self.private_network_acl_entry_out_3 = ec2.NetworkAclEntry(
+            "PrivateNetworkAclEntryOut3",
+            CidrBlock="0.0.0.0/0",
+            Egress=True,
+            NetworkAclId=Ref(self.private_network_aCL_3),
+            Protocol=-1,
+            RuleAction="allow",
+            RuleNumber=100,
+        )
+
+        self.nat_route_3=ec2.Route(
+            'NatRoute3',
+            RouteTableId=Ref(self.private_web_route_table),
+            DestinationCidrBlock='0.0.0.0/0',
+            NatGatewayId=Ref(self.nat_1),
+        )
+
+        # self.nat_route_3_1=ec2.Route(
+        #     'NatRoute31',
+        #     RouteTableId=Ref(self.private_web_route_table),
+        #     DestinationCidrBlock='172.1.1.0/24',
+        #     NatGatewayId=Ref(self.nat_1),
+        # )
+
+        # self.nat_route_3_2=ec2.Route(
+        #     'NatRoute32',
+        #     RouteTableId=Ref(self.private_web_route_table),
+        #     DestinationCidrBlock='172.1.2.0/24',
+        #     NatGatewayId=Ref(self.nat_1),
+        # )
+
