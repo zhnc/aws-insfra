@@ -1,0 +1,39 @@
+aws cloudwatch list-metrics --namespace UserCount --profile kis --dimensions '[{"Name":"produceId","Value":"SM"}]'
+
+aws cloudwatch get-metric-data --profile kis --start-time 2018-12-20T02:50:00Z --end-time 2018-12-20T03:00:00Z  --metric-data-queries '[
+    {
+      "Id": "xxx01",
+      "MetricStat": {
+        "Metric": {
+            "Namespace": "UserCount",
+            "MetricName": "OnLineCount",
+            "Dimensions": [
+                {
+                    "Name": "produceId",
+                    "Value": "SM"
+                },{
+                    "Name": "HostType",
+                    "Value": "Replica"
+                },{
+                    "Name": "IP",
+                    "Value": "52.82.27.182"
+                },{
+                    "Name": "InstanceID",
+                    "Value": "i-096ddec28d266e1cd"
+                }
+            ]
+        },
+        "Period": 300,
+        "Stat": "Sum"
+      },
+      "Label":"label01"
+    }
+  ]'
+  
+
+  aws ec2 describe-addresses --filter '[{"Name":"tag:Name","Values":["HA-SM"]}]' --profile kis
+
+  aws --profile kis autoscaling describe-tags  --filters '[{"Name":"auto-scaling-group","Values":["Kis-Ningxia-SmRdpServerAutoscalingGroup-17CKTIQ4XB7H3"]}]'
+
+
+  aws --profile kis autoscaling describe-tags  --filters '[{"Name":"auto-scaling-group","Values":["SM"]}]'

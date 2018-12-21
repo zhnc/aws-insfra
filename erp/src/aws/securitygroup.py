@@ -234,6 +234,12 @@ class SecurityGroup(MagicDict):
                     FromPort="-1",
                     ToPort="-1",
                     SourceSecurityGroupId=Ref(self.ops),
+                ),
+                ec2.SecurityGroupRule(
+                    IpProtocol="tcp",
+                    FromPort="8288",
+                    ToPort="8288",
+                    CidrIp="0.0.0.0/0",
                 )
             ],
             SecurityGroupEgress=[
@@ -425,5 +431,73 @@ class SecurityGroup(MagicDict):
             DependsOn=self.web_instance_security_group
         )
 
-        # TODO:: iis security group 8288 to nlb
+        self.app_ha_instance_security_group = ec2.SecurityGroup(
+            "HAProxyInstanceSecurityGroup",
+            GroupDescription="HAProxy security group",
+            SecurityGroupIngress=[
+                # ec2.SecurityGroupRule(
+                #     IpProtocol="-1",
+                #     FromPort="-1",
+                #     ToPort="-1",
+                #     # SourceSecurityGroupId=GetAtt(
+                #     #     self.load_balancer_security_group, "GroupId"),
+                #     SourceSecurityGroupId=Ref(self.app_web_private_lb_security_group)
+                # ),
+                ec2.SecurityGroupRule(
+                    IpProtocol="-1",
+                    FromPort="-1",
+                    ToPort="-1",
+                    SourceSecurityGroupId=Ref(self.ops),
+                ),
+                ec2.SecurityGroupRule(
+                    IpProtocol="tcp",
+                    FromPort="8696",
+                    ToPort="8696",
+                    CidrIp="0.0.0.0/0",
+                ),
+                ec2.SecurityGroupRule(
+                    IpProtocol="tcp",
+                    FromPort="5696",
+                    ToPort="5696",
+                    CidrIp="0.0.0.0/0",
+                ),
+                ec2.SecurityGroupRule(
+                    IpProtocol="tcp",
+                    FromPort="8088",
+                    ToPort="8088",
+                    CidrIp="219.133.170.0/24",
+                ),
+                ec2.SecurityGroupRule(
+                    IpProtocol="tcp",
+                    FromPort="22",
+                    ToPort="22",
+                    CidrIp="219.133.170.0/24",
+                )
+            ],
+            SecurityGroupEgress=[
+                ec2.SecurityGroupRule(
+                    IpProtocol="-1",
+                    FromPort="-1",
+                    ToPort="-1",
+                    CidrIp="0.0.0.0/0",
+                ),
+            ],
+            VpcId=Ref(vpc.vpc),
+            Tags=Tags(
+                Name=Join("", [Ref("AWS::StackName"),
+                               " HAProxy instance security group"]),
+            ),
+        )
+
+        self.app_rdp_ha_instance_security_groupIngressRule = ec2.SecurityGroupIngress(
+            "appRdpHAInstanceSecurityGroupIngressRule",
+            GroupId=Ref(self.app_rdp_instance_security_group),
+            IpProtocol='-1',
+            SourceSecurityGroupId=Ref(self.app_ha_instance_security_group),
+            FromPort='-1',
+            ToPort='-1',
+            DependsOn=self.app_ha_instance_security_group
+        )
+
+        
         

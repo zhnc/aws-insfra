@@ -3,6 +3,9 @@ from troposphere import Parameter, Ref, Template
 from troposphere import cloudformation, autoscaling
 from troposphere.autoscaling import AutoScalingGroup, Tag
 from troposphere.autoscaling import LaunchConfiguration
+from troposphere.autoscaling import ScheduledAction
+from troposphere.autoscaling import ScalingPolicy
+from troposphere.autoscaling import StepAdjustments
 from troposphere.elasticloadbalancing import LoadBalancer
 from troposphere.policies import (
     AutoScalingReplacingUpdate, AutoScalingRollingUpdate, UpdatePolicy
@@ -10,8 +13,7 @@ from troposphere.policies import (
 import troposphere.ec2 as ec2
 import troposphere.elasticloadbalancing as elb
 from magicdict import MagicDict
-
-
+from troposphere.cloudwatch import Alarm, MetricDimension
 
 
 class SMRdpServerAutoScaling(MagicDict):
@@ -85,35 +87,35 @@ class SMRdpServerAutoScaling(MagicDict):
             SecurityGroups=[
                 Ref(securitygroup.app_rdp_instance_security_group)],
             InstanceType=Ref(parameters.sm_rdp_server_ec2_instance_type),
-            AssociatePublicIpAddress=True
+            AssociatePublicIpAddress=False
         )
         self.AutoscalingGroup = AutoScalingGroup(
             "SmRdpServerAutoscalingGroup",
             DesiredCapacity=Ref(parameters.ScaleCapacity),
             Tags=[
                 {
-                    'Key' : 'Name',
-                    'Value' : Join("-", [Ref("AWS::StackName"), "sm-rdp-server-autoScaling"]),
+                    'Key': 'Name',
+                    'Value': Join("-", [Ref("AWS::StackName"), "sm-rdp-server-autoScaling"]),
                     'PropagateAtLaunch':'true'
                 },
                 {
-                    'Key' : 'PID',
-                    'Value' : 'SM',
-                    'PropagateAtLaunch':'true'
+                    'Key': 'PID',
+                    'Value': 'SM',
+                    'PropagateAtLaunch': 'true'
                 },
                 {
-                    'Key' : 'Replica',
-                    'Value' : '1',
-                    'PropagateAtLaunch':'true'
+                    'Key': 'Replica',
+                    'Value': '1',
+                    'PropagateAtLaunch': 'true'
                 }
                 # Name=Join("-", [Ref("AWS::StackName"), "rdp-server-autoScaling"]),
             ],
 
             LaunchConfigurationName=Ref(self.launchConfig),
             MinSize=Ref(parameters.MinCapacity),
-            MaxSize=Ref(parameters.ScaleCapacity),
-            VPCZoneIdentifier=[Ref(vpc.public_subnet_1),
-                               Ref(vpc.public_subnet_2)],
+            MaxSize=Ref(parameters.MaxCapacity),
+            VPCZoneIdentifier=[Ref(vpc.public_subnet_7),
+                               Ref(vpc.public_subnet_8)],
             # LoadBalancerNames=[Ref(LoadBalancer)],
             AvailabilityZones=[Select(0, GetAZs()),
                                Select(1, GetAZs())],
@@ -130,4 +132,48 @@ class SMRdpServerAutoScaling(MagicDict):
                     WaitOnResourceSignals=True
                 ),
             )
+        )
+
+        self.start = ScheduledAction(
+            "smSet2instancesAt8AM",
+            AutoScalingGroupName=Ref(self.AutoscalingGroup),
+            DesiredCapacity=2,
+            Recurrence="10 0 * * MON-FRI"
+        )
+
+        self.end = ScheduledAction(
+            "smSet1InstancesAt0AM",
+            AutoScalingGroupName=Ref(self.AutoscalingGroup),
+            DesiredCapacity=1,
+            Recurrence="0 16 * * MON-FRI"
+        )
+
+        self.policy = ScalingPolicy(
+            "smScalingOut",
+            AutoScalingGroupName=Ref(self.AutoscalingGroup),
+            PolicyType="StepScaling",
+            AdjustmentType="ChangeInCapacity",
+            StepAdjustments=[StepAdjustments(
+                "ScaleOutSM",
+                MetricIntervalLowerBound=0,
+                ScalingAdjustment=1
+            )]
+        )
+
+        self.outAlarm = Alarm(
+            "smOutAlarm",
+            MetricName = "OnLineCount",
+            Namespace = "UserCount",
+            AlarmName = "ScaleOut-SM",
+            Dimensions = [
+                MetricDimension(
+                    Name = 'produceId',
+                    Value = "SM"
+                )],
+            Period = 60,
+            Statistic = "Average",
+            EvaluationPeriods = 1,
+            AlarmActions = [Ref(self.policy)],
+            ComparisonOperator= "GreaterThanOrEqualToThreshold",
+            Threshold = "20"
         )

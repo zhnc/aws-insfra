@@ -51,9 +51,30 @@ Parameters:
   AppServerKeyPair:
     Description: Key pair to use to login to your app server
     Type: AWS::EC2::KeyPair::KeyName
+  HAPROServerImageId:
+    Default: ''
+    Type: String
+  HASMServerImageId:
+    Default: ''
+    Type: String
+  HAServerEC2InstanceType:
+    AllowedValues:
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+    Default: c4.xlarge
+    Description: Instance class for HA server. Defines amount of CPU and Memory.
+    Type: String
+  HAUEServerImageId:
+    Default: ''
+    Type: String
   MSSqlKeyPair:
     Description: Key pair to use to login to your mssql server
     Type: AWS::EC2::KeyPair::KeyName
+  MaxScaleCapacity:
+    Default: '1'
+    Description: Number of Max RDP servers to run
+    Type: String
   MinScaleCapacity:
     Default: '0'
     Description: Number of Min servers to run
@@ -185,7 +206,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
   AppIISTargetGroupApi:
     Properties:
-      Name: AppApiTarget03
+      Name: AppApiTarget
       Port: !Ref 'ApiServerPort'
       Protocol: TCP
       UnhealthyThresholdCount: '3'
@@ -284,6 +305,10 @@ Resources:
           IpProtocol: '-1'
           SourceSecurityGroupId: !Ref 'OpsSecurityGroup'
           ToPort: '-1'
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '8288'
+          IpProtocol: tcp
+          ToPort: '8288'
       Tags:
         - Key: Name
           Value: !Join
@@ -324,6 +349,281 @@ Resources:
               - ' MsSql Servers'
       UserData: !Base64 '80'
     Type: AWS::EC2::Instance
+  HAPRO:
+    Properties:
+      Description: HA PRO EIP
+      EventPattern:
+        detail:
+          AutoScalingGroupName:
+            - !Ref 'HAPROServerAutoscalingGroup'
+        detail-type:
+          - EC2 Instance Launch Successful
+        source:
+          - aws.autoscaling
+      Name: HAPROEIP
+      Targets:
+        - Arn: arn:aws-cn:lambda:cn-northwest-1:926748824711:function:kis-HAProxy-EIP
+          Id: HAPROEIP
+    Type: AWS::Events::Rule
+  HAPROServerAutoscalingGroup:
+    Properties:
+      AvailabilityZones:
+        - !Select
+          - 0
+          - !GetAZs ''
+        - !Select
+          - 1
+          - !GetAZs ''
+      DesiredCapacity: 1
+      HealthCheckGracePeriod: 300
+      HealthCheckType: EC2
+      LaunchConfigurationName: !Ref 'HAPROServerLaunchConfiguration'
+      MaxSize: 2
+      MinSize: 1
+      Tags:
+        - Key: Name
+          PropagateAtLaunch: 'true'
+          Value: !Join
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - ha-pro-autoScaling
+        - Key: PID
+          PropagateAtLaunch: 'true'
+          Value: HA-PRO
+      VPCZoneIdentifier:
+        - !Ref 'HASubnet1'
+        - !Ref 'HASubnet2'
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: 'true'
+      AutoScalingRollingUpdate:
+        MaxBatchSize: '1'
+        MinInstancesInService: '1'
+        PauseTime: PT5M
+        WaitOnResourceSignals: 'true'
+  HAPROServerLaunchConfiguration:
+    Metadata:
+      AWS::CloudFormation::Init:
+        config: {}
+    Properties:
+      AssociatePublicIpAddress: 'true'
+      IamInstanceProfile: ec2-log-role
+      ImageId: !Ref 'HAPROServerImageId'
+      InstanceType: !Ref 'HAServerEC2InstanceType'
+      KeyName: !Ref 'RdpServerKeyPair'
+      SecurityGroups:
+        - !Ref 'HAProxyInstanceSecurityGroup'
+    Type: AWS::AutoScaling::LaunchConfiguration
+  HAProxyInstanceSecurityGroup:
+    Properties:
+      GroupDescription: HAProxy security group
+      SecurityGroupEgress:
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '-1'
+          IpProtocol: '-1'
+          ToPort: '-1'
+      SecurityGroupIngress:
+        - FromPort: '-1'
+          IpProtocol: '-1'
+          SourceSecurityGroupId: !Ref 'OpsSecurityGroup'
+          ToPort: '-1'
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '8696'
+          IpProtocol: tcp
+          ToPort: '8696'
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '5696'
+          IpProtocol: tcp
+          ToPort: '5696'
+        - CidrIp: 219.133.170.0/24
+          FromPort: '8088'
+          IpProtocol: tcp
+          ToPort: '8088'
+        - CidrIp: 219.133.170.0/24
+          FromPort: '22'
+          IpProtocol: tcp
+          ToPort: '22'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - ' HAProxy instance security group'
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::SecurityGroup
+  HASM:
+    Properties:
+      Description: HA EIP
+      EventPattern:
+        detail:
+          AutoScalingGroupName:
+            - !Ref 'HASMServerAutoscalingGroup'
+        detail-type:
+          - EC2 Instance Launch Successful
+        source:
+          - aws.autoscaling
+      Name: HASMEIP
+      Targets:
+        - Arn: arn:aws-cn:lambda:cn-northwest-1:926748824711:function:kis-HAProxy-EIP
+          Id: HASMEIP
+    Type: AWS::Events::Rule
+  HASMServerAutoscalingGroup:
+    Properties:
+      AvailabilityZones:
+        - !Select
+          - 0
+          - !GetAZs ''
+        - !Select
+          - 1
+          - !GetAZs ''
+      DesiredCapacity: 1
+      HealthCheckGracePeriod: 300
+      HealthCheckType: EC2
+      LaunchConfigurationName: !Ref 'HASMServerLaunchConfiguration'
+      MaxSize: 2
+      MinSize: 1
+      Tags:
+        - Key: Name
+          PropagateAtLaunch: 'true'
+          Value: !Join
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - ha-sm-autoScaling
+        - Key: PID
+          PropagateAtLaunch: 'true'
+          Value: HA-SM
+      VPCZoneIdentifier:
+        - !Ref 'HASubnet1'
+        - !Ref 'HASubnet2'
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: 'true'
+      AutoScalingRollingUpdate:
+        MaxBatchSize: '1'
+        MinInstancesInService: '1'
+        PauseTime: PT5M
+        WaitOnResourceSignals: 'true'
+  HASMServerLaunchConfiguration:
+    Metadata:
+      AWS::CloudFormation::Init:
+        config: {}
+    Properties:
+      AssociatePublicIpAddress: 'true'
+      IamInstanceProfile: ec2-log-role
+      ImageId: !Ref 'HASMServerImageId'
+      InstanceType: !Ref 'HAServerEC2InstanceType'
+      KeyName: !Ref 'RdpServerKeyPair'
+      SecurityGroups:
+        - !Ref 'HAProxyInstanceSecurityGroup'
+    Type: AWS::AutoScaling::LaunchConfiguration
+  HASubnet1:
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      CidrBlock: 172.1.150.224/27
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -ha-subnet-1
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  HASubnet1RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PublicRouteTable'
+      SubnetId: !Ref 'HASubnet1'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  HASubnet2:
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ''
+      CidrBlock: 172.1.151.224/27
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -ha-subnet-2
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  HASubnet2RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PublicRouteTable'
+      SubnetId: !Ref 'HASubnet2'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  HAUE:
+    Properties:
+      Description: HA UE EIP
+      EventPattern:
+        detail:
+          AutoScalingGroupName:
+            - !Ref 'HAUEServerAutoscalingGroup'
+        detail-type:
+          - EC2 Instance Launch Successful
+        source:
+          - aws.autoscaling
+      Name: HAUEEIP
+      Targets:
+        - Arn: arn:aws-cn:lambda:cn-northwest-1:926748824711:function:kis-HAProxy-EIP
+          Id: HAUEEIP
+    Type: AWS::Events::Rule
+  HAUEServerAutoscalingGroup:
+    Properties:
+      AvailabilityZones:
+        - !Select
+          - 0
+          - !GetAZs ''
+        - !Select
+          - 1
+          - !GetAZs ''
+      DesiredCapacity: 1
+      HealthCheckGracePeriod: 300
+      HealthCheckType: EC2
+      LaunchConfigurationName: !Ref 'HAUEServerLaunchConfiguration'
+      MaxSize: 2
+      MinSize: 1
+      Tags:
+        - Key: Name
+          PropagateAtLaunch: 'true'
+          Value: !Join
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - ha-ue-autoScaling
+        - Key: PID
+          PropagateAtLaunch: 'true'
+          Value: HA-UE
+      VPCZoneIdentifier:
+        - !Ref 'HASubnet1'
+        - !Ref 'HASubnet2'
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: 'true'
+      AutoScalingRollingUpdate:
+        MaxBatchSize: '1'
+        MinInstancesInService: '1'
+        PauseTime: PT5M
+        WaitOnResourceSignals: 'true'
+  HAUEServerLaunchConfiguration:
+    Metadata:
+      AWS::CloudFormation::Init:
+        config: {}
+    Properties:
+      AssociatePublicIpAddress: 'true'
+      IamInstanceProfile: ec2-log-role
+      ImageId: !Ref 'HAUEServerImageId'
+      InstanceType: !Ref 'HAServerEC2InstanceType'
+      KeyName: !Ref 'RdpServerKeyPair'
+      SecurityGroups:
+        - !Ref 'HAProxyInstanceSecurityGroup'
+    Type: AWS::AutoScaling::LaunchConfiguration
   InternetGateway:
     Properties:
       Tags:
@@ -349,7 +649,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::Listener
   LoadBalancer:
     Properties:
-      Name: app-iis-nlb-03
+      Name: app-iis-nlb
       Scheme: internet-facing
       SubnetMappings:
         - AllocationId: !GetAtt 'eipA.AllocationId'
@@ -594,7 +894,7 @@ Resources:
       HealthCheckGracePeriod: 300
       HealthCheckType: EC2
       LaunchConfigurationName: !Ref 'ProRdpServerLaunchConfiguration'
-      MaxSize: !Ref 'ScaleCapacity'
+      MaxSize: !Ref 'MaxScaleCapacity'
       MinSize: !Ref 'MinScaleCapacity'
       Tags:
         - Key: Name
@@ -610,8 +910,8 @@ Resources:
           PropagateAtLaunch: 'true'
           Value: '1'
       VPCZoneIdentifier:
-        - !Ref 'PublicSubnet1'
-        - !Ref 'PublicSubnet2'
+        - !Ref 'PublicSubnet3'
+        - !Ref 'PublicSubnet4'
     Type: AWS::AutoScaling::AutoScalingGroup
     UpdatePolicy:
       AutoScalingReplacingUpdate:
@@ -626,7 +926,7 @@ Resources:
       AWS::CloudFormation::Init:
         config: {}
     Properties:
-      AssociatePublicIpAddress: 'true'
+      AssociatePublicIpAddress: 'false'
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
@@ -654,7 +954,7 @@ Resources:
       AvailabilityZone: !Select
         - 0
         - !GetAZs ''
-      CidrBlock: 172.1.128.0/24
+      CidrBlock: 172.1.140.224/27
       MapPublicIpOnLaunch: 'true'
       Tags:
         - Key: Name
@@ -674,7 +974,7 @@ Resources:
       AvailabilityZone: !Select
         - 1
         - !GetAZs ''
-      CidrBlock: 172.1.129.0/24
+      CidrBlock: 172.1.141.224/27
       MapPublicIpOnLaunch: 'true'
       Tags:
         - Key: Name
@@ -689,6 +989,126 @@ Resources:
       RouteTableId: !Ref 'PublicRouteTable'
       SubnetId: !Ref 'PublicSubnet2'
     Type: AWS::EC2::SubnetRouteTableAssociation
+  PublicSubnet3:
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      CidrBlock: 172.1.142.224/27
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -rdp-subnet-b-1
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PublicSubnet3RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateRouteTable'
+      SubnetId: !Ref 'PublicSubnet3'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PublicSubnet4:
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ''
+      CidrBlock: 172.1.143.224/27
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -rdp-subnet-b-2
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PublicSubnet4RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateRouteTable'
+      SubnetId: !Ref 'PublicSubnet4'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PublicSubnet5:
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      CidrBlock: 172.1.144.224/27
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -rdp-subnet-c-1
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PublicSubnet5RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateRouteTable'
+      SubnetId: !Ref 'PublicSubnet5'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PublicSubnet6:
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ''
+      CidrBlock: 172.1.145.224/27
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -rdp-subnet-c-2
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PublicSubnet6RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateRouteTable'
+      SubnetId: !Ref 'PublicSubnet6'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PublicSubnet7:
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      CidrBlock: 172.1.146.224/27
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -rdp-subnet-a-1
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PublicSubnet7RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateRouteTable'
+      SubnetId: !Ref 'PublicSubnet7'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PublicSubnet8:
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ''
+      CidrBlock: 172.1.147.224/27
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -rdp-subnet-a-2
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PublicSubnet8RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateRouteTable'
+      SubnetId: !Ref 'PublicSubnet8'
+    Type: AWS::EC2::SubnetRouteTableAssociation
   RouteToInternet:
     DependsOn: InternetGatewayAttachment
     Properties:
@@ -701,7 +1121,7 @@ Resources:
       AWS::CloudFormation::Init:
         config: {}
     Properties:
-      AssociatePublicIpAddress: 'true'
+      AssociatePublicIpAddress: 'false'
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
@@ -727,7 +1147,7 @@ Resources:
       HealthCheckGracePeriod: 300
       HealthCheckType: EC2
       LaunchConfigurationName: !Ref 'SMRdpServerLaunchConfiguration'
-      MaxSize: !Ref 'ScaleCapacity'
+      MaxSize: !Ref 'MaxScaleCapacity'
       MinSize: !Ref 'MinScaleCapacity'
       Tags:
         - Key: Name
@@ -743,8 +1163,8 @@ Resources:
           PropagateAtLaunch: 'true'
           Value: '1'
       VPCZoneIdentifier:
-        - !Ref 'PublicSubnet1'
-        - !Ref 'PublicSubnet2'
+        - !Ref 'PublicSubnet7'
+        - !Ref 'PublicSubnet8'
     Type: AWS::AutoScaling::AutoScalingGroup
     UpdatePolicy:
       AutoScalingReplacingUpdate:
@@ -759,7 +1179,7 @@ Resources:
       AWS::CloudFormation::Init:
         config: {}
     Properties:
-      AssociatePublicIpAddress: 'true'
+      AssociatePublicIpAddress: 'false'
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
@@ -785,7 +1205,7 @@ Resources:
       HealthCheckGracePeriod: 300
       HealthCheckType: EC2
       LaunchConfigurationName: !Ref 'UERdpServerLaunchConfiguration'
-      MaxSize: !Ref 'ScaleCapacity'
+      MaxSize: !Ref 'MaxScaleCapacity'
       MinSize: !Ref 'MinScaleCapacity'
       Tags:
         - Key: Name
@@ -801,8 +1221,8 @@ Resources:
           PropagateAtLaunch: 'true'
           Value: '1'
       VPCZoneIdentifier:
-        - !Ref 'PublicSubnet1'
-        - !Ref 'PublicSubnet2'
+        - !Ref 'PublicSubnet5'
+        - !Ref 'PublicSubnet6'
     Type: AWS::AutoScaling::AutoScalingGroup
     UpdatePolicy:
       AutoScalingReplacingUpdate:
@@ -887,24 +1307,24 @@ Resources:
   WebListener:
     Properties:
       DefaultActions:
-        - TargetGroupArn: !Ref 'WebTargetGroupApi'
+        - TargetGroupArn: !Ref 'WebTargetGroupApi01'
           Type: forward
-      LoadBalancerArn: !Ref 'WebLoadBalancer'
+      LoadBalancerArn: !Ref 'WebLoadBalancer01'
       Port: '8088'
       Protocol: HTTP
     Type: AWS::ElasticLoadBalancingV2::Listener
   WebListener1:
     Properties:
       DefaultActions:
-        - TargetGroupArn: !Ref 'WebTargetGroupApi'
+        - TargetGroupArn: !Ref 'WebTargetGroupApi01'
           Type: forward
-      LoadBalancerArn: !Ref 'WebLoadBalancer'
+      LoadBalancerArn: !Ref 'WebLoadBalancer01'
       Port: '3306'
       Protocol: HTTP
     Type: AWS::ElasticLoadBalancingV2::Listener
-  WebLoadBalancer:
+  WebLoadBalancer01:
     Properties:
-      Name: web-lb
+      Name: web-lb-01
       Scheme: internet-facing
       SecurityGroups:
         - !Ref 'WebPublicLoadBalanceSecurityGroup'
@@ -969,7 +1389,7 @@ Resources:
             - - !Ref 'AWS::StackName'
               - web-server-autoScaling
       TargetGroupARNs:
-        - !Ref 'WebTargetGroupApi'
+        - !Ref 'WebTargetGroupApi01'
       VPCZoneIdentifier:
         - !Ref 'PrivateSubnet3'
         - !Ref 'PrivateSubnet4'
@@ -994,7 +1414,7 @@ Resources:
       SecurityGroups:
         - !Ref 'WebInstanceSecurityGroup'
     Type: AWS::AutoScaling::LaunchConfiguration
-  WebTargetGroupApi:
+  WebTargetGroupApi01:
     Properties:
       HealthCheckIntervalSeconds: '30'
       HealthCheckPath: /favicon.ico
@@ -1003,7 +1423,7 @@ Resources:
       HealthyThresholdCount: '4'
       Matcher:
         HttpCode: '200'
-      Name: WebTarget
+      Name: WebTarget01
       Port: !Ref 'webServerPort'
       Protocol: HTTP
       UnhealthyThresholdCount: '3'
@@ -1025,6 +1445,15 @@ Resources:
       GroupId: !Ref 'AppWebPrivateLoadBalanceSecurityGroup'
       IpProtocol: '-1'
       SourceSecurityGroupId: !Ref 'WebInstanceSecurityGroup'
+      ToPort: '-1'
+    Type: AWS::EC2::SecurityGroupIngress
+  appRdpHAInstanceSecurityGroupIngressRule:
+    DependsOn: HAProxyInstanceSecurityGroup
+    Properties:
+      FromPort: '-1'
+      GroupId: !Ref 'AppRdpInstanceSecurityGroup'
+      IpProtocol: '-1'
+      SourceSecurityGroupId: !Ref 'HAProxyInstanceSecurityGroup'
       ToPort: '-1'
     Type: AWS::EC2::SecurityGroupIngress
   appRdpInstanceSecurityGroupIngressRule:
@@ -1062,6 +1491,138 @@ Resources:
     Properties:
       Domain: vpc
     Type: AWS::EC2::EIP
+  proOutAlarm:
+    Properties:
+      AlarmActions:
+        - !Ref 'proScalingOut'
+      AlarmName: ScaleOut-PRO
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: produceId
+          Value: PRO
+      EvaluationPeriods: 1
+      MetricName: OnLineCount
+      Namespace: UserCount
+      Period: 60
+      Statistic: Average
+      Threshold: '20'
+    Type: AWS::CloudWatch::Alarm
+  proScalingOut:
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref 'ProRdpServerAutoscalingGroup'
+      PolicyType: StepScaling
+      StepAdjustments:
+        - MetricIntervalLowerBound: 0
+          ScalingAdjustment: 1
+    Type: AWS::AutoScaling::ScalingPolicy
+  proSet1InstancesAt0AM:
+    Properties:
+      AutoScalingGroupName: !Ref 'ProRdpServerAutoscalingGroup'
+      DesiredCapacity: 1
+      Recurrence: '0 16 * * MON-FRI'
+    Type: AWS::AutoScaling::ScheduledAction
+  proSet2instancesAt8AM:
+    Properties:
+      AutoScalingGroupName: !Ref 'ProRdpServerAutoscalingGroup'
+      DesiredCapacity: 2
+      Recurrence: 10 0 * * MON-FRI
+    Type: AWS::AutoScaling::ScheduledAction
+  prolambda:
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: arn:aws-cn:lambda:cn-northwest-1:926748824711:function:kis-HAProxy-EIP
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt 'HAPRO.Arn'
+    Type: AWS::Lambda::Permission
+  smOutAlarm:
+    Properties:
+      AlarmActions:
+        - !Ref 'smScalingOut'
+      AlarmName: ScaleOut-SM
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: produceId
+          Value: SM
+      EvaluationPeriods: 1
+      MetricName: OnLineCount
+      Namespace: UserCount
+      Period: 60
+      Statistic: Average
+      Threshold: '20'
+    Type: AWS::CloudWatch::Alarm
+  smScalingOut:
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref 'SmRdpServerAutoscalingGroup'
+      PolicyType: StepScaling
+      StepAdjustments:
+        - MetricIntervalLowerBound: 0
+          ScalingAdjustment: 1
+    Type: AWS::AutoScaling::ScalingPolicy
+  smSet1InstancesAt0AM:
+    Properties:
+      AutoScalingGroupName: !Ref 'SmRdpServerAutoscalingGroup'
+      DesiredCapacity: 1
+      Recurrence: '0 16 * * MON-FRI'
+    Type: AWS::AutoScaling::ScheduledAction
+  smSet2instancesAt8AM:
+    Properties:
+      AutoScalingGroupName: !Ref 'SmRdpServerAutoscalingGroup'
+      DesiredCapacity: 2
+      Recurrence: 10 0 * * MON-FRI
+    Type: AWS::AutoScaling::ScheduledAction
+  smlambda:
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: arn:aws-cn:lambda:cn-northwest-1:926748824711:function:kis-HAProxy-EIP
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt 'HASM.Arn'
+    Type: AWS::Lambda::Permission
+  ueOutAlarm:
+    Properties:
+      AlarmActions:
+        - !Ref 'ueScalingOut'
+      AlarmName: ScaleOut-UE
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: produceId
+          Value: UE
+      EvaluationPeriods: 1
+      MetricName: OnLineCount
+      Namespace: UserCount
+      Period: 60
+      Statistic: Average
+      Threshold: '20'
+    Type: AWS::CloudWatch::Alarm
+  ueScalingOut:
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref 'UeRdpServerAutoscalingGroup'
+      PolicyType: StepScaling
+      StepAdjustments:
+        - MetricIntervalLowerBound: 0
+          ScalingAdjustment: 1
+    Type: AWS::AutoScaling::ScalingPolicy
+  ueSet1InstancesAt0AM:
+    Properties:
+      AutoScalingGroupName: !Ref 'UeRdpServerAutoscalingGroup'
+      DesiredCapacity: 1
+      Recurrence: '0 16 * * MON-FRI'
+    Type: AWS::AutoScaling::ScheduledAction
+  ueSet2instancesAt8AM:
+    Properties:
+      AutoScalingGroupName: !Ref 'UeRdpServerAutoscalingGroup'
+      DesiredCapacity: 2
+      Recurrence: 10 0 * * MON-FRI
+    Type: AWS::AutoScaling::ScheduledAction
+  uelambda:
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: arn:aws-cn:lambda:cn-northwest-1:926748824711:function:kis-HAProxy-EIP
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt 'HAUE.Arn'
+    Type: AWS::Lambda::Permission
   webInstanceSecurityGroupIngressRule:
     DependsOn: WebInstanceSecurityGroup
     Properties:

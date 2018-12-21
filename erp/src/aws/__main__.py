@@ -14,6 +14,10 @@ from SMRdpServerAutoScaling import SMRdpServerAutoScaling
 from AppServerAutoScaling import AppServerAutoScaling
 from WebServerAutoScaling import WebServerAutoScaling
 
+from HAPROServerAutoScaling import HAPROServerAutoScaling
+from HASMServerAutoScaling import HASMServerAutoScaling
+from HAUEServerAutoScaling import HAUEServerAutoScaling
+
 from mssql import MsSql
 
 
@@ -69,12 +73,21 @@ def main():
     proRdpServerAutoScaling = ProRdpServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
     for res in proRdpServerAutoScaling.values():
         template.add_resource(res)
-
     ueRdpServerAutoScaling = UERdpServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
     for res in ueRdpServerAutoScaling.values():
         template.add_resource(res)
     smRdpServerAutoScaling = SMRdpServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
     for res in smRdpServerAutoScaling.values():
+        template.add_resource(res)
+
+    haPROServerAutoScaling = HAPROServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
+    for res in haPROServerAutoScaling.values():
+        template.add_resource(res)
+    haUEServerAutoScaling = HAUEServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
+    for res in haUEServerAutoScaling.values():
+        template.add_resource(res)
+    haSMServerAutoScaling = HASMServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
+    for res in haSMServerAutoScaling.values():
         template.add_resource(res)
 
     appServerAutoScaling = AppServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)

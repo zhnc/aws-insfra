@@ -230,3 +230,42 @@ class Parameters(MagicDict):
             Type="String",
             Description="Number of Min servers to run",
         )
+
+        self.MaxCapacity = Parameter(
+            "MaxScaleCapacity",
+            Default="1",
+            Type="String",
+            Description="Number of Max RDP servers to run",
+        )
+
+
+        self.ha_server_ec2_instance_type = Parameter(
+            "HAServerEC2InstanceType",
+            Type="String",
+            AllowedValues=[
+                "c4.large",
+                "c4.xlarge",
+                "c4.2xlarge"
+            ],
+            Default="c4.xlarge",
+            Description="Instance class for HA server. Defines amount of CPU and Memory."
+        )
+
+        self.HASMServerImageId = Parameter(
+            "HASMServerImageId",
+            Type="String",
+            Default=""
+        )
+
+        self.HAPROServerImageId = Parameter(
+            "HAPROServerImageId",
+            Type="String",
+            Default=""
+        )
+
+        self.HAUEServerImageId = Parameter(
+            "HAUEServerImageId",
+            Type="String",
+            Default=""
+        )
+

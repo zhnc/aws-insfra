@@ -145,7 +145,7 @@ class VPC(MagicDict):
         self.public_subnet_1 = ec2.Subnet(
             "PublicSubnet1",
             AvailabilityZone=Select(0, GetAZs()),
-            CidrBlock="172.1.128.0/24",
+            CidrBlock="172.1.140.224/27",
             MapPublicIpOnLaunch=True,
             Tags=Tags(
                 Name=Join("", [Ref("AWS::StackName"), "-public-subnet-1"]),
@@ -163,7 +163,7 @@ class VPC(MagicDict):
         self.public_subnet_2 = ec2.Subnet(
             "PublicSubnet2",
             AvailabilityZone=Select(1, GetAZs()),
-            CidrBlock="172.1.129.0/24",
+            CidrBlock="172.1.141.224/27",
             MapPublicIpOnLaunch=True,
             Tags=Tags(
                 Name=Join("", [Ref("AWS::StackName"), "-public-subnet-2"]),
@@ -176,6 +176,110 @@ class VPC(MagicDict):
             RouteTableId=Ref(self.public_route_table),
             SubnetId=Ref(self.public_subnet_2),
         )
+
+        self.public_subnet_3 = ec2.Subnet(
+            "PublicSubnet3",
+            AvailabilityZone=Select(0, GetAZs()),
+            CidrBlock="172.1.142.224/27",
+            MapPublicIpOnLaunch=True,
+            Tags=Tags(
+                Name=Join("", [Ref("AWS::StackName"), "-rdp-subnet-b-1"]),
+            ),
+            VpcId=Ref(self.vpc),
+        )
+
+        self.public_subnet_3_route_table_association = ec2.SubnetRouteTableAssociation(
+            "PublicSubnet3RouteTableAssociation",
+            RouteTableId=Ref(self.private_route_table),
+            SubnetId=Ref(self.public_subnet_3),
+        )
+
+        self.public_subnet_4 = ec2.Subnet(
+            "PublicSubnet4",
+            AvailabilityZone=Select(1, GetAZs()),
+            CidrBlock="172.1.143.224/27",
+            MapPublicIpOnLaunch=True,
+            Tags=Tags(
+                Name=Join("", [Ref("AWS::StackName"), "-rdp-subnet-b-2"]),
+            ),
+            VpcId=Ref(self.vpc),
+        )
+
+        self.public_subnet_4_route_table_association = ec2.SubnetRouteTableAssociation(
+            "PublicSubnet4RouteTableAssociation",
+            RouteTableId=Ref(self.private_route_table),
+            SubnetId=Ref(self.public_subnet_4),
+        )
+
+        self.public_subnet_5 = ec2.Subnet(
+            "PublicSubnet5",
+            AvailabilityZone=Select(0, GetAZs()),
+            CidrBlock="172.1.144.224/27",
+            MapPublicIpOnLaunch=True,
+            Tags=Tags(
+                Name=Join("", [Ref("AWS::StackName"), "-rdp-subnet-c-1"]),
+            ),
+            VpcId=Ref(self.vpc),
+        )
+
+        self.public_subnet_5_route_table_association = ec2.SubnetRouteTableAssociation(
+            "PublicSubnet5RouteTableAssociation",
+            RouteTableId=Ref(self.private_route_table),
+            SubnetId=Ref(self.public_subnet_5),
+        )
+
+        self.public_subnet_6 = ec2.Subnet(
+            "PublicSubnet6",
+            AvailabilityZone=Select(1, GetAZs()),
+            CidrBlock="172.1.145.224/27",
+            MapPublicIpOnLaunch=True,
+            Tags=Tags(
+                Name=Join("", [Ref("AWS::StackName"), "-rdp-subnet-c-2"]),
+            ),
+            VpcId=Ref(self.vpc),
+        )
+
+        self.public_subnet_6_route_table_association = ec2.SubnetRouteTableAssociation(
+            "PublicSubnet6RouteTableAssociation",
+            RouteTableId=Ref(self.private_route_table),
+            SubnetId=Ref(self.public_subnet_6),
+        )
+
+
+        self.public_subnet_7 = ec2.Subnet(
+            "PublicSubnet7",
+            AvailabilityZone=Select(0, GetAZs()),
+            CidrBlock="172.1.146.224/27",
+            MapPublicIpOnLaunch=True,
+            Tags=Tags(
+                Name=Join("", [Ref("AWS::StackName"), "-rdp-subnet-a-1"]),
+            ),
+            VpcId=Ref(self.vpc),
+        )
+
+        self.public_subnet_7_route_table_association = ec2.SubnetRouteTableAssociation(
+            "PublicSubnet7RouteTableAssociation",
+            RouteTableId=Ref(self.private_route_table),
+            SubnetId=Ref(self.public_subnet_7),
+        )
+
+        self.public_subnet_8 = ec2.Subnet(
+            "PublicSubnet8",
+            AvailabilityZone=Select(1, GetAZs()),
+            CidrBlock="172.1.147.224/27",
+            MapPublicIpOnLaunch=True,
+            Tags=Tags(
+                Name=Join("", [Ref("AWS::StackName"), "-rdp-subnet-a-2"]),
+            ),
+            VpcId=Ref(self.vpc),
+        )
+
+        self.public_subnet_8_route_table_association = ec2.SubnetRouteTableAssociation(
+            "PublicSubnet8RouteTableAssociation",
+            RouteTableId=Ref(self.private_route_table),
+            SubnetId=Ref(self.public_subnet_8),
+        )
+
 
         self.nat_eip_1 = ec2.EIP(
             'NatEip',
@@ -301,3 +405,39 @@ class VPC(MagicDict):
         #     NatGatewayId=Ref(self.nat_1),
         # )
 
+
+        #ha
+
+        self.ha_subnet_1 = ec2.Subnet(
+            "HASubnet1",
+            AvailabilityZone=Select(0, GetAZs()),
+            CidrBlock="172.1.150.224/27",
+            MapPublicIpOnLaunch=True,
+            Tags=Tags(
+                Name=Join("", [Ref("AWS::StackName"), "-ha-subnet-1"]),
+            ),
+            VpcId=Ref(self.vpc),
+        )
+
+        self.ha_subnet_1_route_table_association = ec2.SubnetRouteTableAssociation(
+            "HASubnet1RouteTableAssociation",
+            RouteTableId=Ref(self.public_route_table),
+            SubnetId=Ref(self.ha_subnet_1),
+        )
+
+        self.ha_subnet_2 = ec2.Subnet(
+            "HASubnet2",
+            AvailabilityZone=Select(1, GetAZs()),
+            CidrBlock="172.1.151.224/27",
+            MapPublicIpOnLaunch=True,
+            Tags=Tags(
+                Name=Join("", [Ref("AWS::StackName"), "-ha-subnet-2"]),
+            ),
+            VpcId=Ref(self.vpc),
+        )
+
+        self.ha_subnet_2_route_table_association = ec2.SubnetRouteTableAssociation(
+            "HASubnet2RouteTableAssociation",
+            RouteTableId=Ref(self.public_route_table),
+            SubnetId=Ref(self.ha_subnet_2),
+        )

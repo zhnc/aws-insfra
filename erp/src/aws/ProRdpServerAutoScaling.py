@@ -10,8 +10,10 @@ from troposphere.policies import (
 import troposphere.ec2 as ec2
 import troposphere.elasticloadbalancing as elb
 from magicdict import MagicDict
-
-
+from troposphere.autoscaling import ScheduledAction
+from troposphere.autoscaling import ScalingPolicy
+from troposphere.autoscaling import StepAdjustments
+from troposphere.cloudwatch import Alarm,MetricDimension
 
 
 class ProRdpServerAutoScaling(MagicDict):
@@ -85,7 +87,7 @@ class ProRdpServerAutoScaling(MagicDict):
             SecurityGroups=[
                 Ref(securitygroup.app_rdp_instance_security_group)],
             InstanceType=Ref(parameters.pro_rdp_server_ec2_instance_type),
-            AssociatePublicIpAddress=True
+            AssociatePublicIpAddress=False
         )
         self.AutoscalingGroup = AutoScalingGroup(
             "ProRdpServerAutoscalingGroup",
@@ -111,9 +113,9 @@ class ProRdpServerAutoScaling(MagicDict):
 
             LaunchConfigurationName=Ref(self.launchConfig),
             MinSize=Ref(parameters.MinCapacity),
-            MaxSize=Ref(parameters.ScaleCapacity),
-            VPCZoneIdentifier=[Ref(vpc.public_subnet_1),
-                               Ref(vpc.public_subnet_2)],
+            MaxSize=Ref(parameters.MaxCapacity),
+            VPCZoneIdentifier=[Ref(vpc.public_subnet_3),
+                               Ref(vpc.public_subnet_4)],
             # LoadBalancerNames=[Ref(LoadBalancer)],
             AvailabilityZones=[Select(0, GetAZs()),
                                Select(1, GetAZs())],
@@ -130,4 +132,51 @@ class ProRdpServerAutoScaling(MagicDict):
                     WaitOnResourceSignals=True
                 ),
             )
+        )
+
+
+        self.start = ScheduledAction(
+            "proSet2instancesAt8AM",
+            AutoScalingGroupName = Ref(self.AutoscalingGroup),
+            DesiredCapacity = 2,
+            Recurrence = "10 0 * * MON-FRI"
+        )
+        
+        self.end = ScheduledAction(
+            "proSet1InstancesAt0AM",
+            AutoScalingGroupName = Ref(self.AutoscalingGroup),
+            DesiredCapacity = 1,
+            Recurrence = "0 16 * * MON-FRI"
+        )
+
+
+
+
+        self.policy = ScalingPolicy(
+            "proScalingOut",
+            AutoScalingGroupName = Ref(self.AutoscalingGroup),
+            PolicyType = "StepScaling",
+            AdjustmentType = "ChangeInCapacity",
+            StepAdjustments = [StepAdjustments(
+                "ScaleOutPRO",
+                MetricIntervalLowerBound= 0,
+                ScalingAdjustment=1
+            )]
+        )
+
+        self.outAlarm = Alarm(
+            "proOutAlarm",
+            AlarmName="ScaleOut-PRO",
+            MetricName="OnLineCount",
+            Namespace="UserCount",
+            Dimensions=[MetricDimension(
+                Name="produceId",
+                Value = "PRO"
+            )],
+            Period=60,
+            Statistic="Average",
+            EvaluationPeriods=1,
+            AlarmActions=[Ref(self.policy)],
+            ComparisonOperator = "GreaterThanOrEqualToThreshold",
+            Threshold= "20"
         )
