@@ -1,4 +1,4 @@
-from troposphere import Base64, Join, GetAZs, Tags, Select
+from troposphere import Base64, Join, GetAZs, Tags, Select, GetAtt
 from troposphere import Parameter, Ref, Template
 from troposphere import cloudformation, autoscaling
 from troposphere.autoscaling import AutoScalingGroup, Tag
@@ -113,13 +113,11 @@ class WebServerAutoScaling(MagicDict):
                 #     )
                 # })
             ),
-            # UserData=Base64(Join('', [
-            #     "#!/bin/bash\n",
-            #     "cfn-signal -e 0",
-            #     "    --resource AutoscalingGroup",
-            #     "    --stack ", Ref("AWS::StackName"),
-            #     "    --region ", Ref("AWS::Region"), "\n"
-            # ])),
+            UserData=Base64(Join('', [
+                "#!/bin/bash\n",
+                "sed -r -i 's/web-lb-[0-9]+-[0-9]+.cn-northwest-1.elb.amazonaws.com.cn/",GetAtt(self.loadBalancer, "DNSName"), 
+                "/' /home/wwwroot/aws_demo/config/ext_config.php /home/wwwroot/aws_demo/public/view/config.js","\n"
+            ])),
             ImageId=Ref(parameters.WebPortalServerImageId),
             KeyName=Ref(parameters.web_server_key_pair),
             IamInstanceProfile="ec2-log-role",

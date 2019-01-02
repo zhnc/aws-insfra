@@ -26,5 +26,7 @@ class MsSql(MagicDict):
             Tags=Tags(
                 Name=Join("", [Ref("AWS::StackName"),
                                " MsSql Servers"]),
+                AutoSnapshot='1'
             ),
+            PrivateIpAddress='172.1.1.130'
         )

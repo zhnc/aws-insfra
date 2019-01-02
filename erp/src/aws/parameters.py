@@ -72,7 +72,7 @@ class Parameters(MagicDict):
                 "c4.2xlarge",
                 "c4.4xlarge",
             ],
-            Default="c4.xlarge",
+            Default="c4.2xlarge",
             Description="Instance class for Pro rdp server. Defines amount of CPU and Memory."
         )
 
@@ -89,7 +89,7 @@ class Parameters(MagicDict):
                 "c4.2xlarge",
                 "c4.4xlarge",
             ],
-            Default="c4.xlarge",
+            Default="c4.2xlarge",
             Description="Instance class for UE rdp server. Defines amount of CPU and Memory."
         )
 
@@ -106,7 +106,7 @@ class Parameters(MagicDict):
                 "c4.2xlarge",
                 "c4.4xlarge",
             ],
-            Default="c4.xlarge",
+            Default="c4.2xlarge",
             Description="Instance class for SM rdp server. Defines amount of CPU and Memory."
         )
 
@@ -119,7 +119,7 @@ class Parameters(MagicDict):
                 "m4.2xlarge",
                 "m4.4xlarge"
             ],
-            Default="m4.large",
+            Default="m4.xlarge",
             Description="Instance class for app server. Defines amount of CPU and Memory."
         )
 
@@ -132,7 +132,7 @@ class Parameters(MagicDict):
                 "m4.2xlarge",
                 "m4.4xlarge"
             ],
-            Default="m4.large",
+            Default="m4.xlarge",
             Description="Instance class for Web server. Defines amount of CPU and Memory."
         )
 
@@ -146,7 +146,7 @@ class Parameters(MagicDict):
                 "r4.4xlarge",
                 "r4.8xlarge"
             ],
-            Default="r4.large",
+            Default="r4.2xlarge",
             Description="Instance class for rdp server. Defines amount of CPU and Memory."
         )
 
@@ -154,7 +154,7 @@ class Parameters(MagicDict):
         self.app_api_port = Parameter(
             "ApiServerPort",
             Type="String",
-            Default="80",
+            Default="8288",
             Description="TCP/IP port of the api server",
         )
 
@@ -181,26 +181,26 @@ class Parameters(MagicDict):
         self.MssqlServerImageId = Parameter(
             "MssqlServerImageId",
             Type="String",
-            Default="ami-02cd86d8309ab34dd"
+            Default="ami-00dfdd29975c62159"
         )
 
         
         self.ProRdpServerImageId = Parameter(
             "ProRdpServerImageId",
             Type="String",
-            Default="ami-076e3388927cd05f8"
+            Default="ami-00da8711a85fee102"
         )
 
         self.SMRdpServerImageId = Parameter(
             "SMRdpServerImageId",
             Type="String",
-            Default="ami-0798ef0fdc4e67d1b"
+            Default="ami-01945d96d0338c56c"
         )
 
         self.UERdpServerImageId = Parameter(
             "UERdpServerImageId",
             Type="String",
-            Default="ami-027ea09961956c414"
+            Default="ami-0d9d0dae54934a0c8"
         )
 
         
@@ -208,13 +208,13 @@ class Parameters(MagicDict):
         self.WebPortalServerImageId = Parameter(
             "WebPortalServerImageId",
             Type="String",
-            Default="ami-0fb9d02d706b826c2"
+            Default="ami-0ad9b545c3cd28cb8"
         )
 
         self.AppServerImageId = Parameter(
             "AppServerImageId",
             Type="String",
-            Default="ami-0c54030c708a20120"
+            Default="ami-016be4a8a848bd6b5"
         )
 
         self.ScaleCapacity = Parameter(
@@ -226,14 +226,14 @@ class Parameters(MagicDict):
 
         self.MinCapacity = Parameter(
             "MinScaleCapacity",
-            Default="0",
+            Default="1",
             Type="String",
             Description="Number of Min servers to run",
         )
 
         self.MaxCapacity = Parameter(
             "MaxScaleCapacity",
-            Default="1",
+            Default="2",
             Type="String",
             Description="Number of Max RDP servers to run",
         )
@@ -254,18 +254,18 @@ class Parameters(MagicDict):
         self.HASMServerImageId = Parameter(
             "HASMServerImageId",
             Type="String",
-            Default=""
+            Default="ami-075fd9adb791069d1"
         )
 
         self.HAPROServerImageId = Parameter(
             "HAPROServerImageId",
             Type="String",
-            Default=""
+            Default="ami-075fd9adb791069d1"
         )
 
         self.HAUEServerImageId = Parameter(
             "HAUEServerImageId",
             Type="String",
-            Default=""
+            Default="ami-075fd9adb791069d1"
         )
 

@@ -33,7 +33,7 @@ Metadata:
         default: Choose a key pair
 Parameters:
   ApiServerPort:
-    Default: '80'
+    Default: '8288'
     Description: TCP/IP port of the api server
     Type: String
   AppServerEC2InstanceType:
@@ -42,20 +42,20 @@ Parameters:
       - m4.xlarge
       - m4.2xlarge
       - m4.4xlarge
-    Default: m4.large
+    Default: m4.xlarge
     Description: Instance class for app server. Defines amount of CPU and Memory.
     Type: String
   AppServerImageId:
-    Default: ami-0c54030c708a20120
+    Default: ami-016be4a8a848bd6b5
     Type: String
   AppServerKeyPair:
     Description: Key pair to use to login to your app server
     Type: AWS::EC2::KeyPair::KeyName
   HAPROServerImageId:
-    Default: ''
+    Default: ami-075fd9adb791069d1
     Type: String
   HASMServerImageId:
-    Default: ''
+    Default: ami-075fd9adb791069d1
     Type: String
   HAServerEC2InstanceType:
     AllowedValues:
@@ -66,17 +66,17 @@ Parameters:
     Description: Instance class for HA server. Defines amount of CPU and Memory.
     Type: String
   HAUEServerImageId:
-    Default: ''
+    Default: ami-075fd9adb791069d1
     Type: String
   MSSqlKeyPair:
     Description: Key pair to use to login to your mssql server
     Type: AWS::EC2::KeyPair::KeyName
   MaxScaleCapacity:
-    Default: '1'
+    Default: '2'
     Description: Number of Max RDP servers to run
     Type: String
   MinScaleCapacity:
-    Default: '0'
+    Default: '1'
     Description: Number of Min servers to run
     Type: String
   MssqlEc2InstanceType:
@@ -86,11 +86,11 @@ Parameters:
       - r4.2xlarge
       - r4.4xlarge
       - r4.8xlarge
-    Default: r4.large
+    Default: r4.2xlarge
     Description: Instance class for rdp server. Defines amount of CPU and Memory.
     Type: String
   MssqlServerImageId:
-    Default: ami-02cd86d8309ab34dd
+    Default: ami-00dfdd29975c62159
     Type: String
   ProRdpServerEC2InstanceType:
     AllowedValues:
@@ -102,17 +102,17 @@ Parameters:
       - c4.xlarge
       - c4.2xlarge
       - c4.4xlarge
-    Default: c4.xlarge
+    Default: c4.2xlarge
     Description: Instance class for Pro rdp server. Defines amount of CPU and Memory.
     Type: String
   ProRdpServerImageId:
-    Default: ami-076e3388927cd05f8
+    Default: ami-00da8711a85fee102
     Type: String
   RdpServerKeyPair:
     Description: Key pair to use to login to your Rdp server
     Type: AWS::EC2::KeyPair::KeyName
   SMRdpServerImageId:
-    Default: ami-0798ef0fdc4e67d1b
+    Default: ami-01945d96d0338c56c
     Type: String
   ScaleCapacity:
     Default: '1'
@@ -128,11 +128,11 @@ Parameters:
       - c4.xlarge
       - c4.2xlarge
       - c4.4xlarge
-    Default: c4.xlarge
+    Default: c4.2xlarge
     Description: Instance class for SM rdp server. Defines amount of CPU and Memory.
     Type: String
   UERdpServerImageId:
-    Default: ami-027ea09961956c414
+    Default: ami-0d9d0dae54934a0c8
     Type: String
   UeRdpServerEC2InstanceType:
     AllowedValues:
@@ -144,11 +144,11 @@ Parameters:
       - c4.xlarge
       - c4.2xlarge
       - c4.4xlarge
-    Default: c4.xlarge
+    Default: c4.2xlarge
     Description: Instance class for UE rdp server. Defines amount of CPU and Memory.
     Type: String
   WebPortalServerImageId:
-    Default: ami-0fb9d02d706b826c2
+    Default: ami-0ad9b545c3cd28cb8
     Type: String
   WebServerEC2InstanceType:
     AllowedValues:
@@ -156,7 +156,7 @@ Parameters:
       - m4.xlarge
       - m4.2xlarge
       - m4.4xlarge
-    Default: m4.large
+    Default: m4.xlarge
     Description: Instance class for Web server. Defines amount of CPU and Memory.
     Type: String
   WebServerKeyPair:
@@ -338,10 +338,13 @@ Resources:
       ImageId: !Ref 'MssqlServerImageId'
       InstanceType: !Ref 'MssqlEc2InstanceType'
       KeyName: !Ref 'MSSqlKeyPair'
+      PrivateIpAddress: 172.1.1.130
       SecurityGroupIds:
         - !Ref 'AppDBSecurityGroup'
       SubnetId: !Ref 'PrivateSubnet1'
       Tags:
+        - Key: AutoSnapshot
+          Value: '1'
         - Key: Name
           Value: !Join
             - ''
@@ -1413,6 +1416,14 @@ Resources:
       KeyName: !Ref 'WebServerKeyPair'
       SecurityGroups:
         - !Ref 'WebInstanceSecurityGroup'
+      UserData: !Base64
+        Fn::Join:
+          - ''
+          - - "#!/bin/bash\n"
+            - sed -r -i 's/web-lb-[0-9]+-[0-9]+.cn-northwest-1.elb.amazonaws.com.cn/
+            - !GetAtt 'WebLoadBalancer01.DNSName'
+            - /' /home/wwwroot/aws_demo/config/ext_config.php /home/wwwroot/aws_demo/public/view/config.js
+            - "\n"
     Type: AWS::AutoScaling::LaunchConfiguration
   WebTargetGroupApi01:
     Properties:
