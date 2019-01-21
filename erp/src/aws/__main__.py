@@ -66,29 +66,29 @@ def main():
     for res in securityGroup.values():
         template.add_resource(res)
 
-    proRdpServerAutoScaling = ProRdpServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
-    for res in proRdpServerAutoScaling.values():
-        template.add_resource(res)
+    # proRdpServerAutoScaling = ProRdpServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
+    # for res in proRdpServerAutoScaling.values():
+    #     template.add_resource(res)
 
-    ueRdpServerAutoScaling = UERdpServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
-    for res in ueRdpServerAutoScaling.values():
-        template.add_resource(res)
-    smRdpServerAutoScaling = SMRdpServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
-    for res in smRdpServerAutoScaling.values():
-        template.add_resource(res)
+    # ueRdpServerAutoScaling = UERdpServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
+    # for res in ueRdpServerAutoScaling.values():
+    #     template.add_resource(res)
+    # smRdpServerAutoScaling = SMRdpServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
+    # for res in smRdpServerAutoScaling.values():
+    #     template.add_resource(res)
 
-    appServerAutoScaling = AppServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
-    for res in appServerAutoScaling.values():
-        template.add_resource(res)
+    # appServerAutoScaling = AppServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
+    # for res in appServerAutoScaling.values():
+    #     template.add_resource(res)
 
         
-    webServerAutoScaling = WebServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
-    for res in webServerAutoScaling.values():
-        template.add_resource(res)
+    # webServerAutoScaling = WebServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
+    # for res in webServerAutoScaling.values():
+    #     template.add_resource(res)
         
-    mssql = MsSql(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
-    for res in mssql.values():
-        template.add_resource(res)
+    # mssql = MsSql(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
+    # for res in mssql.values():
+    #     template.add_resource(res)
         
     # elb = LoadBalancer(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
     # for res in elb.values():

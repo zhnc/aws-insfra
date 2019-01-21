@@ -146,20 +146,6 @@ Parameters:
     Description: TCP/IP port of the web server
     Type: String
 Resources:
-  AppApiTargetGroupApi:
-    Properties:
-      HealthCheckIntervalSeconds: '30'
-      HealthCheckProtocol: HTTP
-      HealthCheckTimeoutSeconds: '10'
-      HealthyThresholdCount: '4'
-      Matcher:
-        HttpCode: '200'
-      Name: AppApiTarget01
-      Port: !Ref 'ApiServerPort'
-      Protocol: HTTP
-      UnhealthyThresholdCount: '3'
-      VpcId: !Ref 'VPC'
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
   AppDBSecurityGroup:
     Properties:
       GroupDescription: App DB security group
@@ -226,65 +212,6 @@ Resources:
               - ' App RDP instance security group'
       VpcId: !Ref 'VPC'
     Type: AWS::EC2::SecurityGroup
-  AppServerAutoscalingGroup:
-    Properties:
-      AvailabilityZones:
-        - !Select
-          - 0
-          - !GetAZs ''
-        - !Select
-          - 1
-          - !GetAZs ''
-      DesiredCapacity: !Ref 'ScaleCapacity'
-      HealthCheckGracePeriod: 300
-      HealthCheckType: EC2
-      LaunchConfigurationName: !Ref 'AppServerLaunchConfiguration'
-      MaxSize: !Ref 'ScaleCapacity'
-      MinSize: !Ref 'MinScaleCapacity'
-      Tags:
-        - Key: Name
-          PropagateAtLaunch: 'true'
-          Value: !Join
-            - '-'
-            - - !Ref 'AWS::StackName'
-              - app-server-autoScaling
-      TargetGroupARNs:
-        - !Ref 'AppApiTargetGroupApi'
-      VPCZoneIdentifier:
-        - !Ref 'PrivateSubnet1'
-        - !Ref 'PrivateSubnet2'
-    Type: AWS::AutoScaling::AutoScalingGroup
-    UpdatePolicy:
-      AutoScalingReplacingUpdate:
-        WillReplace: 'true'
-      AutoScalingRollingUpdate:
-        MaxBatchSize: '1'
-        MinInstancesInService: '1'
-        PauseTime: PT5M
-        WaitOnResourceSignals: 'true'
-  AppServerLaunchConfiguration:
-    Metadata:
-      AWS::CloudFormation::Init:
-        config: {}
-    Properties:
-      BlockDeviceMappings:
-        - DeviceName: /dev/sda1
-          Ebs:
-            VolumeSize: '50'
-            VolumeType: gp2
-        - DeviceName: xvdb
-          Ebs:
-            SnapshotId: snap-0ad6a6f4e37d7b998
-            VolumeSize: '100'
-            VolumeType: gp2
-        - DeviceName: xvdca
-          VirtualName: ephemeral0
-      ImageId: !Ref 'AppServerImageId'
-      InstanceType: !Ref 'AppServerEC2InstanceType'
-      KeyName: !Ref 'AppServerKeyPair'
-      SecurityGroups:
-        - !Ref 'AppWebInstanceSecurityGroup'
-    Type: AWS::AutoScaling::LaunchConfiguration
   AppWebInstanceSecurityGroup:
     Properties:
       GroupDescription: App Web Instance security group
@@ -326,22 +253,6 @@ Resources:
               - ' App web private load balance security group'
       VpcId: !Ref 'VPC'
     Type: AWS::EC2::SecurityGroup
-  Ec2Instance:
-    Properties:
-      ImageId: !Ref 'MssqlServerImageId'
-      InstanceType: !Ref 'MssqlEc2InstanceType'
-      KeyName: !Ref 'MSSqlKeyPair'
-      SecurityGroupIds:
-        - !Ref 'AppDBSecurityGroup'
-      SubnetId: !Ref 'PrivateSubnet1'
-      Tags:
-        - Key: Name
-          Value: !Join
-            - ''
-            - - !Ref 'AWS::StackName'
-              - ' MsSql Servers'
-      UserData: !Base64 '80'
-    Type: AWS::EC2::Instance
   InternetGateway:
     Properties:
       Tags:
@@ -356,26 +267,6 @@ Resources:
       InternetGatewayId: !Ref 'InternetGateway'
       VpcId: !Ref 'VPC'
     Type: AWS::EC2::VPCGatewayAttachment
-  Listener1:
-    Properties:
-      DefaultActions:
-        - TargetGroupArn: !Ref 'AppApiTargetGroupApi'
-          Type: forward
-      LoadBalancerArn: !Ref 'LoadBalancer'
-      Port: '8288'
-      Protocol: HTTP
-    Type: AWS::ElasticLoadBalancingV2::Listener
-  LoadBalancer:
-    Properties:
-      Name: app-api-lb
-      Scheme: internal
-      SecurityGroups:
-        - !Ref 'AppWebPrivateLoadBalanceSecurityGroup'
-      Subnets:
-        - !Ref 'PrivateSubnet1'
-        - !Ref 'PrivateSubnet2'
-      Type: application
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
   Nat:
     DependsOn: NatEip
     Properties:
@@ -505,68 +396,6 @@ Resources:
       RouteTableId: !Ref 'PrivateRouteTable'
       SubnetId: !Ref 'PrivateSubnet2'
     Type: AWS::EC2::SubnetRouteTableAssociation
-  ProRdpServerAutoscalingGroup:
-    Properties:
-      AvailabilityZones:
-        - !Select
-          - 0
-          - !GetAZs ''
-        - !Select
-          - 1
-          - !GetAZs ''
-      DesiredCapacity: !Ref 'ScaleCapacity'
-      HealthCheckGracePeriod: 300
-      HealthCheckType: EC2
-      LaunchConfigurationName: !Ref 'ProRdpServerLaunchConfiguration'
-      MaxSize: !Ref 'ScaleCapacity'
-      MinSize: !Ref 'MinScaleCapacity'
-      Tags:
-        - Key: Name
-          PropagateAtLaunch: 'true'
-          Value: !Join
-            - '-'
-            - - !Ref 'AWS::StackName'
-              - pro-rdp-server-autoScaling
-        - Key: PID
-          PropagateAtLaunch: 'true'
-          Value: PRO
-        - Key: Replica
-          PropagateAtLaunch: 'true'
-          Value: '1'
-      VPCZoneIdentifier:
-        - !Ref 'PublicSubnet1'
-        - !Ref 'PublicSubnet2'
-    Type: AWS::AutoScaling::AutoScalingGroup
-    UpdatePolicy:
-      AutoScalingReplacingUpdate:
-        WillReplace: 'true'
-      AutoScalingRollingUpdate:
-        MaxBatchSize: '1'
-        MinInstancesInService: '1'
-        PauseTime: PT5M
-        WaitOnResourceSignals: 'true'
-  ProRdpServerLaunchConfiguration:
-    Metadata:
-      AWS::CloudFormation::Init:
-        config: {}
-    Properties:
-      AssociatePublicIpAddress: 'true'
-      BlockDeviceMappings:
-        - DeviceName: /dev/sda1
-          Ebs:
-            VolumeSize: '40'
-            VolumeType: gp2
-        - DeviceName: xvdb
-          Ebs:
-            SnapshotId: snap-0e0e04671533fe363
-            VolumeSize: '100'
-            VolumeType: gp2
-      ImageId: !Ref 'ProRdpServerImageId'
-      InstanceType: !Ref 'ProRdpServerEC2InstanceType'
-      KeyName: !Ref 'RdpServerKeyPair'
-      SecurityGroups:
-        - !Ref 'AppRdpInstanceSecurityGroup'
-    Type: AWS::AutoScaling::LaunchConfiguration
   PublicRouteTable:
     Properties:
       Tags:
@@ -624,130 +453,6 @@ Resources:
       GatewayId: !Ref 'InternetGateway'
       RouteTableId: !Ref 'PublicRouteTable'
     Type: AWS::EC2::Route
-  SMRdpServerLaunchConfiguration:
-    Metadata:
-      AWS::CloudFormation::Init:
-        config: {}
-    Properties:
-      AssociatePublicIpAddress: 'true'
-      BlockDeviceMappings:
-        - DeviceName: /dev/sda1
-          Ebs:
-            VolumeSize: '40'
-            VolumeType: gp2
-        - DeviceName: xvdb
-          Ebs:
-            SnapshotId: snap-0e0e04671533fe363
-            VolumeSize: '100'
-            VolumeType: gp2
-      ImageId: !Ref 'SMRdpServerImageId'
-      InstanceType: !Ref 'SmRdpServerEC2InstanceType'
-      KeyName: !Ref 'RdpServerKeyPair'
-      SecurityGroups:
-        - !Ref 'AppRdpInstanceSecurityGroup'
-    Type: AWS::AutoScaling::LaunchConfiguration
-  SmRdpServerAutoscalingGroup:
-    Properties:
-      AvailabilityZones:
-        - !Select
-          - 0
-          - !GetAZs ''
-        - !Select
-          - 1
-          - !GetAZs ''
-      DesiredCapacity: !Ref 'ScaleCapacity'
-      HealthCheckGracePeriod: 300
-      HealthCheckType: EC2
-      LaunchConfigurationName: !Ref 'SMRdpServerLaunchConfiguration'
-      MaxSize: !Ref 'ScaleCapacity'
-      MinSize: !Ref 'MinScaleCapacity'
-      Tags:
-        - Key: Name
-          PropagateAtLaunch: 'true'
-          Value: !Join
-            - '-'
-            - - !Ref 'AWS::StackName'
-              - sm-rdp-server-autoScaling
-        - Key: PID
-          PropagateAtLaunch: 'true'
-          Value: SM
-        - Key: Replica
-          PropagateAtLaunch: 'true'
-          Value: '1'
-      VPCZoneIdentifier:
-        - !Ref 'PublicSubnet1'
-        - !Ref 'PublicSubnet2'
-    Type: AWS::AutoScaling::AutoScalingGroup
-    UpdatePolicy:
-      AutoScalingReplacingUpdate:
-        WillReplace: 'true'
-      AutoScalingRollingUpdate:
-        MaxBatchSize: '1'
-        MinInstancesInService: '1'
-        PauseTime: PT5M
-        WaitOnResourceSignals: 'true'
-  UERdpServerLaunchConfiguration:
-    Metadata:
-      AWS::CloudFormation::Init:
-        config: {}
-    Properties:
-      AssociatePublicIpAddress: 'true'
-      BlockDeviceMappings:
-        - DeviceName: /dev/sda1
-          Ebs:
-            VolumeSize: '40'
-            VolumeType: gp2
-        - DeviceName: xvdb
-          Ebs:
-            SnapshotId: snap-0e0e04671533fe363
-            VolumeSize: '100'
-            VolumeType: gp2
-      ImageId: !Ref 'UERdpServerImageId'
-      InstanceType: !Ref 'UeRdpServerEC2InstanceType'
-      KeyName: !Ref 'RdpServerKeyPair'
-      SecurityGroups:
-        - !Ref 'AppRdpInstanceSecurityGroup'
-    Type: AWS::AutoScaling::LaunchConfiguration
-  UeRdpServerAutoscalingGroup:
-    Properties:
-      AvailabilityZones:
-        - !Select
-          - 0
-          - !GetAZs ''
-        - !Select
-          - 1
-          - !GetAZs ''
-      DesiredCapacity: !Ref 'ScaleCapacity'
-      HealthCheckGracePeriod: 300
-      HealthCheckType: EC2
-      LaunchConfigurationName: !Ref 'UERdpServerLaunchConfiguration'
-      MaxSize: !Ref 'ScaleCapacity'
-      MinSize: !Ref 'MinScaleCapacity'
-      Tags:
-        - Key: Name
-          PropagateAtLaunch: 'true'
-          Value: !Join
-            - '-'
-            - - !Ref 'AWS::StackName'
-              - ue-rdp-server-autoScaling
-        - Key: PID
-          PropagateAtLaunch: 'true'
-          Value: UE
-        - Key: Replica
-          PropagateAtLaunch: 'true'
-          Value: '1'
-      VPCZoneIdentifier:
-        - !Ref 'PublicSubnet1'
-        - !Ref 'PublicSubnet2'
-    Type: AWS::AutoScaling::AutoScalingGroup
-    UpdatePolicy:
-      AutoScalingReplacingUpdate:
-        WillReplace: 'true'
-      AutoScalingRollingUpdate:
-        MaxBatchSize: '1'
-        MinInstancesInService: '1'
-        PauseTime: PT5M
-        WaitOnResourceSignals: 'true'
   VPC:
     Properties:
       CidrBlock: 172.1.0.0/16
@@ -820,35 +525,6 @@ Resources:
               - ' web instance security group'
       VpcId: !Ref 'VPC'
     Type: AWS::EC2::SecurityGroup
-  WebListener:
-    Properties:
-      DefaultActions:
-        - TargetGroupArn: !Ref 'WebTargetGroupApi'
-          Type: forward
-      LoadBalancerArn: !Ref 'WebLoadBalancer'
-      Port: '8088'
-      Protocol: HTTP
-    Type: AWS::ElasticLoadBalancingV2::Listener
-  WebListener1:
-    Properties:
-      DefaultActions:
-        - TargetGroupArn: !Ref 'WebTargetGroupApi'
-          Type: forward
-      LoadBalancerArn: !Ref 'WebLoadBalancer'
-      Port: '3306'
-      Protocol: HTTP
-    Type: AWS::ElasticLoadBalancingV2::Listener
-  WebLoadBalancer:
-    Properties:
-      Name: web-lb
-      Scheme: internet-facing
-      SecurityGroups:
-        - !Ref 'WebPublicLoadBalanceSecurityGroup'
-      Subnets:
-        - !Ref 'PublicSubnet1'
-        - !Ref 'PublicSubnet2'
-      Type: application
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
   WebPublicLoadBalanceSecurityGroup:
     Properties:
       GroupDescription: web public load balance security group
@@ -882,73 +558,6 @@ Resources:
               - ' web public load balance security group'
       VpcId: !Ref 'VPC'
     Type: AWS::EC2::SecurityGroup
-  WebServerAutoscalingGroup:
-    Properties:
-      AvailabilityZones:
-        - !Select
-          - 0
-          - !GetAZs ''
-        - !Select
-          - 1
-          - !GetAZs ''
-      DesiredCapacity: 0
-      HealthCheckGracePeriod: 300
-      HealthCheckType: EC2
-      LaunchConfigurationName: !Ref 'WebServerLaunchConfiguration'
-      MaxSize: !Ref 'ScaleCapacity'
-      MinSize: !Ref 'MinScaleCapacity'
-      Tags:
-        - Key: Name
-          PropagateAtLaunch: 'true'
-          Value: !Join
-            - '-'
-            - - !Ref 'AWS::StackName'
-              - web-server-autoScaling
-      TargetGroupARNs:
-        - !Ref 'WebTargetGroupApi'
-      VPCZoneIdentifier:
-        - !Ref 'PrivateSubnet1'
-        - !Ref 'PrivateSubnet2'
-    Type: AWS::AutoScaling::AutoScalingGroup
-    UpdatePolicy:
-      AutoScalingReplacingUpdate:
-        WillReplace: 'true'
-      AutoScalingRollingUpdate:
-        MaxBatchSize: '1'
-        MinInstancesInService: '1'
-        PauseTime: PT5M
-        WaitOnResourceSignals: 'true'
-  WebServerLaunchConfiguration:
-    Metadata:
-      AWS::CloudFormation::Init:
-        config: {}
-    Properties:
-      BlockDeviceMappings:
-        - DeviceName: /dev/sdb
-          Ebs:
-            VolumeSize: '200'
-            VolumeType: gp2
-      ImageId: !Ref 'WebPortalServerImageId'
-      InstanceType: !Ref 'WebServerEC2InstanceType'
-      KeyName: !Ref 'WebServerKeyPair'
-      SecurityGroups:
-        - !Ref 'WebInstanceSecurityGroup'
-    Type: AWS::AutoScaling::LaunchConfiguration
-  WebTargetGroupApi:
-    Properties:
-      HealthCheckIntervalSeconds: '30'
-      HealthCheckPath: /favicon.ico
-      HealthCheckProtocol: HTTP
-      HealthCheckTimeoutSeconds: '10'
-      HealthyThresholdCount: '4'
-      Matcher:
-        HttpCode: '200'
-      Name: WebTarget
-      Port: !Ref 'webServerPort'
-      Protocol: HTTP
-      UnhealthyThresholdCount: '3'
-      VpcId: !Ref 'VPC'
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
   appApicSecurityGroupIngressRule01:
     DependsOn: OpsSecurityGroup
     Properties:
