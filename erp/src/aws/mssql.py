@@ -29,4 +29,4 @@ class MsSql(MagicDict):
                 AutoSnapshot='1'
             ),
             PrivateIpAddress='172.1.1.130'
-        )
+        ),
