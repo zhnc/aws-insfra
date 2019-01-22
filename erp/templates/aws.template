@@ -31,199 +31,35 @@ Metadata:
         default: Instance class (advanced)
       KeyPair:
         default: Choose a key pair
-Parameters:
-  ApiServerPort:
-    Default: '80'
-    Description: TCP/IP port of the api server
-    Type: String
-  AppServerEC2InstanceType:
-    AllowedValues:
-      - m3.large
-      - m3.xlarge
-      - m3.2xlarge
-      - m3.4xlarge
-    Default: m3.large
-    Description: Instance class for app server. Defines amount of CPU and Memory.
-    Type: String
-  AppServerImageId:
-    Default: ami-0c54030c708a20120
-    Type: String
-  AppServerKeyPair:
-    Description: Key pair to use to login to your app server
-    Type: AWS::EC2::KeyPair::KeyName
-  MSSqlKeyPair:
-    Description: Key pair to use to login to your mssql server
-    Type: AWS::EC2::KeyPair::KeyName
-  MinScaleCapacity:
-    Default: '0'
-    Description: Number of Min servers to run
-    Type: String
-  MssqlEc2InstanceType:
-    AllowedValues:
-      - r4.large
-      - r4.xlarge
-      - r4.2xlarge
-      - r4.4xlarge
-      - r4.8xlarge
-    Default: r4.large
-    Description: Instance class for rdp server. Defines amount of CPU and Memory.
-    Type: String
-  MssqlServerImageId:
-    Default: ami-02cd86d8309ab34dd
-    Type: String
-  ProRdpServerEC2InstanceType:
-    AllowedValues:
-      - c3.large
-      - c3.xlarge
-      - c3.2xlarge
-      - c3.4xlarge
-      - c4.large
-      - c4.xlarge
-      - c4.2xlarge
-      - c4.4xlarge
-    Default: c3.xlarge
-    Description: Instance class for Pro rdp server. Defines amount of CPU and Memory.
-    Type: String
-  ProRdpServerImageId:
-    Default: ami-076e3388927cd05f8
-    Type: String
-  RdpServerKeyPair:
-    Description: Key pair to use to login to your Rdp server
-    Type: AWS::EC2::KeyPair::KeyName
-  SMRdpServerImageId:
-    Default: ami-0798ef0fdc4e67d1b
-    Type: String
-  ScaleCapacity:
-    Default: '1'
-    Description: Number of servers to run
-    Type: String
-  SmRdpServerEC2InstanceType:
-    AllowedValues:
-      - c3.large
-      - c3.xlarge
-      - c3.2xlarge
-      - c3.4xlarge
-      - c4.large
-      - c4.xlarge
-      - c4.2xlarge
-      - c4.4xlarge
-    Default: c3.xlarge
-    Description: Instance class for SM rdp server. Defines amount of CPU and Memory.
-    Type: String
-  UERdpServerImageId:
-    Default: ami-027ea09961956c414
-    Type: String
-  UeRdpServerEC2InstanceType:
-    AllowedValues:
-      - c3.large
-      - c3.xlarge
-      - c3.2xlarge
-      - c3.4xlarge
-      - c4.large
-      - c4.xlarge
-      - c4.2xlarge
-      - c4.4xlarge
-    Default: c3.xlarge
-    Description: Instance class for UE rdp server. Defines amount of CPU and Memory.
-    Type: String
-  WebPortalServerImageId:
-    Default: ami-0fb9d02d706b826c2
-    Type: String
-  WebServerEC2InstanceType:
-    AllowedValues:
-      - m4.large
-      - m4.xlarge
-      - m4.2xlarge
-      - m4.4xlarge
-    Default: m4.large
-    Description: Instance class for Web server. Defines amount of CPU and Memory.
-    Type: String
-  WebServerKeyPair:
-    Description: Key pair to use to login to your web server
-    Type: AWS::EC2::KeyPair::KeyName
-  webServerPort:
-    Default: '8088'
-    Description: TCP/IP port of the web server
-    Type: String
 Resources:
-  AppDBSecurityGroup:
+  AppInstanceSecurityGroup:
     Properties:
-      GroupDescription: App DB security group
+      GroupDescription: App Instance security group
       SecurityGroupEgress:
         - CidrIp: '0.0.0.0/0'
           FromPort: '-1'
           IpProtocol: '-1'
           ToPort: '-1'
       SecurityGroupIngress:
-        - FromPort: '1433'
+        - FromPort: '80'
           IpProtocol: tcp
-          SourceSecurityGroupId: !Ref 'AppWebInstanceSecurityGroup'
-          ToPort: '1433'
-        - FromPort: '1433'
+          SourceSecurityGroupId: !Ref 'WebInstanceSecurityGroup'
+          ToPort: '81'
+        - FromPort: '5366'
           IpProtocol: tcp
-          SourceSecurityGroupId: !Ref 'AppRdpInstanceSecurityGroup'
-          ToPort: '1433'
-        - FromPort: '55555'
+          SourceSecurityGroupId: !Ref 'WebInstanceSecurityGroup'
+          ToPort: '5367'
+        - FromPort: '3389'
           IpProtocol: tcp
-          SourceSecurityGroupId: !Ref 'AppWebInstanceSecurityGroup'
-          ToPort: '55555'
-        - FromPort: '55555'
-          IpProtocol: tcp
-          SourceSecurityGroupId: !Ref 'AppRdpInstanceSecurityGroup'
-          ToPort: '55555'
+          SourceSecurityGroupId: !Ref 'WebInstanceSecurityGroup'
+          ToPort: '3389'
+        - FromPort: '-1'
+          IpProtocol: ICMP
+          SourceSecurityGroupId: !Ref 'WebInstanceSecurityGroup'
+          ToPort: '-1'
         - FromPort: '-1'
           IpProtocol: '-1'
-          SourceSecurityGroupId: !Ref 'OpsSecurityGroup'
-          ToPort: '-1'
-      Tags:
-        - Key: Name
-          Value: !Join
-            - ''
-            - - !Ref 'AWS::StackName'
-              - ' App DB security group'
-      VpcId: !Ref 'VPC'
-    Type: AWS::EC2::SecurityGroup
-  AppRdpInstanceSecurityGroup:
-    Properties:
-      GroupDescription: App RDP Instance security group
-      SecurityGroupEgress:
-        - CidrIp: '0.0.0.0/0'
-          FromPort: '-1'
-          IpProtocol: '-1'
-          ToPort: '-1'
-      SecurityGroupIngress:
-        - CidrIp: '0.0.0.0/0'
-          FromPort: '8696'
-          IpProtocol: tcp
-          ToPort: '8696'
-        - CidrIp: '0.0.0.0/0'
-          FromPort: '5696'
-          IpProtocol: tcp
-          ToPort: '5696'
-        - FromPort: '-1'
-          IpProtocol: '-1'
-          SourceSecurityGroupId: !Ref 'OpsSecurityGroup'
-          ToPort: '-1'
-      Tags:
-        - Key: Name
-          Value: !Join
-            - ''
-            - - !Ref 'AWS::StackName'
-              - ' App RDP instance security group'
-      VpcId: !Ref 'VPC'
-    Type: AWS::EC2::SecurityGroup
-  AppWebInstanceSecurityGroup:
-    Properties:
-      GroupDescription: App Web Instance security group
-      SecurityGroupEgress:
-        - CidrIp: '0.0.0.0/0'
-          FromPort: '-1'
-          IpProtocol: '-1'
-          ToPort: '-1'
-      SecurityGroupIngress:
-        - FromPort: '-1'
-          IpProtocol: '-1'
-          SourceSecurityGroupId: !Ref 'AppWebPrivateLoadBalanceSecurityGroup'
+          SourceSecurityGroupId: !Ref 'WebInstanceSecurityGroup'
           ToPort: '-1'
         - FromPort: '-1'
           IpProtocol: '-1'
@@ -234,23 +70,7 @@ Resources:
           Value: !Join
             - ''
             - - !Ref 'AWS::StackName'
-              - ' App Web instance security group'
-      VpcId: !Ref 'VPC'
-    Type: AWS::EC2::SecurityGroup
-  AppWebPrivateLoadBalanceSecurityGroup:
-    Properties:
-      GroupDescription: App web private load balance security group
-      SecurityGroupEgress:
-        - CidrIp: '0.0.0.0/0'
-          FromPort: 0
-          IpProtocol: '-1'
-          ToPort: 65535
-      Tags:
-        - Key: Name
-          Value: !Join
-            - ''
-            - - !Ref 'AWS::StackName'
-              - ' App web private load balance security group'
+              - ' App  instance security group'
       VpcId: !Ref 'VPC'
     Type: AWS::EC2::SecurityGroup
   InternetGateway:
@@ -351,7 +171,7 @@ Resources:
       AvailabilityZone: !Select
         - 0
         - !GetAZs ''
-      CidrBlock: 172.1.1.0/24
+      CidrBlock: 172.192.1.0/24
       MapPublicIpOnLaunch: 'false'
       Tags:
         - Key: Name
@@ -376,7 +196,7 @@ Resources:
       AvailabilityZone: !Select
         - 1
         - !GetAZs ''
-      CidrBlock: 172.1.2.0/24
+      CidrBlock: 172.192.2.0/24
       MapPublicIpOnLaunch: 'false'
       Tags:
         - Key: Name
@@ -411,7 +231,7 @@ Resources:
       AvailabilityZone: !Select
         - 0
         - !GetAZs ''
-      CidrBlock: 172.1.128.0/24
+      CidrBlock: 172.192.128.0/24
       MapPublicIpOnLaunch: 'true'
       Tags:
         - Key: Name
@@ -431,7 +251,7 @@ Resources:
       AvailabilityZone: !Select
         - 1
         - !GetAZs ''
-      CidrBlock: 172.1.129.0/24
+      CidrBlock: 172.192.129.0/24
       MapPublicIpOnLaunch: 'true'
       Tags:
         - Key: Name
@@ -455,7 +275,7 @@ Resources:
     Type: AWS::EC2::Route
   VPC:
     Properties:
-      CidrBlock: 172.1.0.0/16
+      CidrBlock: 172.192.0.0/16
       EnableDnsHostnames: 'true'
       EnableDnsSupport: 'true'
       InstanceTenancy: default
@@ -475,31 +295,6 @@ Resources:
           - .s3
       VpcId: !Ref 'VPC'
     Type: AWS::EC2::VPCEndpoint
-  WebDBSecurityGroup:
-    Properties:
-      GroupDescription: Web DB security group
-      SecurityGroupEgress:
-        - CidrIp: '0.0.0.0/0'
-          FromPort: '-1'
-          IpProtocol: '-1'
-          ToPort: '-1'
-      SecurityGroupIngress:
-        - FromPort: '3306'
-          IpProtocol: tcp
-          SourceSecurityGroupId: !Ref 'WebInstanceSecurityGroup'
-          ToPort: '3306'
-        - FromPort: '-1'
-          IpProtocol: '-1'
-          SourceSecurityGroupId: !Ref 'OpsSecurityGroup'
-          ToPort: '-1'
-      Tags:
-        - Key: Name
-          Value: !Join
-            - ''
-            - - !Ref 'AWS::StackName'
-              - ' web DB security group'
-      VpcId: !Ref 'VPC'
-    Type: AWS::EC2::SecurityGroup
   WebInstanceSecurityGroup:
     Properties:
       GroupDescription: Web Instance security group
@@ -509,9 +304,21 @@ Resources:
           IpProtocol: '-1'
           ToPort: '-1'
       SecurityGroupIngress:
-        - FromPort: '-1'
-          IpProtocol: '-1'
-          SourceSecurityGroupId: !Ref 'WebPublicLoadBalanceSecurityGroup'
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '80'
+          IpProtocol: tcp
+          ToPort: '81'
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '5366'
+          IpProtocol: tcp
+          ToPort: '5367'
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '3389'
+          IpProtocol: tcp
+          ToPort: '3389'
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '-1'
+          IpProtocol: ICMP
           ToPort: '-1'
         - FromPort: '-1'
           IpProtocol: '-1'
@@ -525,82 +332,63 @@ Resources:
               - ' web instance security group'
       VpcId: !Ref 'VPC'
     Type: AWS::EC2::SecurityGroup
-  WebPublicLoadBalanceSecurityGroup:
+  appInstanceSecurityGroupIngressRule:
+    DependsOn: AppInstanceSecurityGroup
     Properties:
-      GroupDescription: web public load balance security group
+      FromPort: '-1'
+      GroupId: !Ref 'AppInstanceSecurityGroup'
+      IpProtocol: '-1'
+      SourceSecurityGroupId: !Ref 'AppInstanceSecurityGroup'
+      ToPort: '-1'
+    Type: AWS::EC2::SecurityGroupIngress
+  dBSecurityGroup:
+    Properties:
+      GroupDescription: DB security group
       SecurityGroupEgress:
         - CidrIp: '0.0.0.0/0'
-          FromPort: 0
+          FromPort: '-1'
           IpProtocol: '-1'
-          ToPort: 65535
+          ToPort: '-1'
       SecurityGroupIngress:
-        - CidrIp: '0.0.0.0/0'
-          FromPort: 80
+        - FromPort: '1433'
           IpProtocol: tcp
-          ToPort: 80
-        - CidrIp: '0.0.0.0/0'
-          FromPort: 8088
+          SourceSecurityGroupId: !Ref 'AppInstanceSecurityGroup'
+          ToPort: '1433'
+        - FromPort: '80'
           IpProtocol: tcp
-          ToPort: 8088
-        - CidrIp: '0.0.0.0/0'
-          FromPort: 3306
+          SourceSecurityGroupId: !Ref 'AppInstanceSecurityGroup'
+          ToPort: '81'
+        - FromPort: '5366'
           IpProtocol: tcp
-          ToPort: 3306
-        - CidrIp: '0.0.0.0/0'
-          FromPort: 443
+          SourceSecurityGroupId: !Ref 'AppInstanceSecurityGroup'
+          ToPort: '5367'
+        - FromPort: '3389'
           IpProtocol: tcp
-          ToPort: 443
+          SourceSecurityGroupId: !Ref 'AppInstanceSecurityGroup'
+          ToPort: '3389'
+        - FromPort: '-1'
+          IpProtocol: ICMP
+          SourceSecurityGroupId: !Ref 'AppInstanceSecurityGroup'
+          ToPort: '-1'
+        - FromPort: '-1'
+          IpProtocol: '-1'
+          SourceSecurityGroupId: !Ref 'OpsSecurityGroup'
+          ToPort: '-1'
       Tags:
         - Key: Name
           Value: !Join
             - ''
             - - !Ref 'AWS::StackName'
-              - ' web public load balance security group'
+              - ' App DB security group'
       VpcId: !Ref 'VPC'
     Type: AWS::EC2::SecurityGroup
-  appApicSecurityGroupIngressRule01:
-    DependsOn: OpsSecurityGroup
+  dbGroupIngressRule:
+    DependsOn: dBSecurityGroup
     Properties:
       FromPort: '-1'
-      GroupId: !Ref 'AppWebPrivateLoadBalanceSecurityGroup'
+      GroupId: !Ref 'dBSecurityGroup'
       IpProtocol: '-1'
-      SourceSecurityGroupId: !Ref 'OpsSecurityGroup'
-      ToPort: '-1'
-    Type: AWS::EC2::SecurityGroupIngress
-  appApicSecurityGroupIngressRule02:
-    DependsOn: WebInstanceSecurityGroup
-    Properties:
-      FromPort: '-1'
-      GroupId: !Ref 'AppWebPrivateLoadBalanceSecurityGroup'
-      IpProtocol: '-1'
-      SourceSecurityGroupId: !Ref 'WebInstanceSecurityGroup'
-      ToPort: '-1'
-    Type: AWS::EC2::SecurityGroupIngress
-  appRdpInstanceSecurityGroupIngressRule:
-    DependsOn: AppRdpInstanceSecurityGroup
-    Properties:
-      FromPort: '-1'
-      GroupId: !Ref 'AppRdpInstanceSecurityGroup'
-      IpProtocol: '-1'
-      SourceSecurityGroupId: !Ref 'AppRdpInstanceSecurityGroup'
-      ToPort: '-1'
-    Type: AWS::EC2::SecurityGroupIngress
-  appWebInstanceSecurityGroupIngressRule:
-    DependsOn: AppWebInstanceSecurityGroup
-    Properties:
-      FromPort: '-1'
-      GroupId: !Ref 'AppWebInstanceSecurityGroup'
-      IpProtocol: '-1'
-      SourceSecurityGroupId: !Ref 'AppWebInstanceSecurityGroup'
-      ToPort: '-1'
-    Type: AWS::EC2::SecurityGroupIngress
-  appWebPrivateLbSecurityGroupIngressRule03:
-    DependsOn: AppRdpInstanceSecurityGroup
-    Properties:
-      FromPort: '-1'
-      GroupId: !Ref 'AppWebPrivateLoadBalanceSecurityGroup'
-      IpProtocol: '-1'
-      SourceSecurityGroupId: !Ref 'AppRdpInstanceSecurityGroup'
+      SourceSecurityGroupId: !Ref 'dBSecurityGroup'
       ToPort: '-1'
     Type: AWS::EC2::SecurityGroupIngress
   webInstanceSecurityGroupIngressRule:
@@ -608,15 +396,6 @@ Resources:
     Properties:
       FromPort: '-1'
       GroupId: !Ref 'WebInstanceSecurityGroup'
-      IpProtocol: '-1'
-      SourceSecurityGroupId: !Ref 'WebInstanceSecurityGroup'
-      ToPort: '-1'
-    Type: AWS::EC2::SecurityGroupIngress
-  webPublicSecurityGroupIngressRule:
-    DependsOn: WebInstanceSecurityGroup
-    Properties:
-      FromPort: '-1'
-      GroupId: !Ref 'WebPublicLoadBalanceSecurityGroup'
       IpProtocol: '-1'
       SourceSecurityGroupId: !Ref 'WebInstanceSecurityGroup'
       ToPort: '-1'

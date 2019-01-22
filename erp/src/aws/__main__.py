@@ -7,12 +7,12 @@ from mappings import Mappings
 from parameters import Parameters
 from vpc import VPC
 from securitygroup import SecurityGroup
-from ecs import ECS
-from ProRdpServerAutoScaling import ProRdpServerAutoScaling
-from UERdpServerAutoScaling import UERdpServerAutoScaling
-from SMRdpServerAutoScaling import SMRdpServerAutoScaling
-from AppServerAutoScaling import AppServerAutoScaling
-from WebServerAutoScaling import WebServerAutoScaling
+# from ecs import ECS
+# from ProRdpServerAutoScaling import ProRdpServerAutoScaling
+# from UERdpServerAutoScaling import UERdpServerAutoScaling
+# from SMRdpServerAutoScaling import SMRdpServerAutoScaling
+# from AppServerAutoScaling import AppServerAutoScaling
+# from WebServerAutoScaling import WebServerAutoScaling
 
 from mssql import MsSql
 

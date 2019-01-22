@@ -10,7 +10,7 @@ class VPC(MagicDict):
 
         self.vpc = ec2.VPC(
             "VPC",
-            CidrBlock="172.1.0.0/16",
+            CidrBlock="172.192.0.0/16",
             InstanceTenancy="default",
             EnableDnsSupport=True,
             EnableDnsHostnames=True,
@@ -70,7 +70,7 @@ class VPC(MagicDict):
         self.private_subnet_1 = ec2.Subnet(
             "PrivateSubnet1",
             AvailabilityZone=Select(0, GetAZs()),
-            CidrBlock="172.1.1.0/24",
+            CidrBlock="172.192.1.0/24",
             MapPublicIpOnLaunch=False,
             Tags=Tags(
                 Name=Join("", [Ref("AWS::StackName"), "-private-subnet-1"]),
@@ -87,7 +87,7 @@ class VPC(MagicDict):
         self.private_subnet_2 = ec2.Subnet(
             "PrivateSubnet2",
             AvailabilityZone=Select(1, GetAZs()),
-            CidrBlock="172.1.2.0/24",
+            CidrBlock="172.192.2.0/24",
             MapPublicIpOnLaunch=False,
             Tags=Tags(
                 Name=Join("", [Ref("AWS::StackName"), "-private-subnet-2"]),
@@ -145,7 +145,7 @@ class VPC(MagicDict):
         self.public_subnet_1 = ec2.Subnet(
             "PublicSubnet1",
             AvailabilityZone=Select(0, GetAZs()),
-            CidrBlock="172.1.128.0/24",
+            CidrBlock="172.192.128.0/24",
             MapPublicIpOnLaunch=True,
             Tags=Tags(
                 Name=Join("", [Ref("AWS::StackName"), "-public-subnet-1"]),
@@ -163,7 +163,7 @@ class VPC(MagicDict):
         self.public_subnet_2 = ec2.Subnet(
             "PublicSubnet2",
             AvailabilityZone=Select(1, GetAZs()),
-            CidrBlock="172.1.129.0/24",
+            CidrBlock="172.192.129.0/24",
             MapPublicIpOnLaunch=True,
             Tags=Tags(
                 Name=Join("", [Ref("AWS::StackName"), "-public-subnet-2"]),
