@@ -1,0 +1,12 @@
+aws elasticache create-replication-group \
+    --replication-group-id authtestgroup \
+    --replication-group-description authtest \
+    --engine redis \
+    --engine-version 5.0.3 \
+    --cache-node-type cache.m4.large \
+    --num-node-groups 1 \
+    --replicas-per-node-group 2 \
+    --cache-parameter-group default.redis5.0.cluster.on \
+    --transit-encryption-enabled \
+    --auth-token This-is-a-sample-token \
+    --cache-subnet-group sng-test
