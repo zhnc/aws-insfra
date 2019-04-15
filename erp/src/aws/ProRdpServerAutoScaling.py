@@ -166,7 +166,7 @@ class ProRdpServerAutoScaling(MagicDict):
 
         self.outAlarm = Alarm(
             "proOutAlarm",
-            AlarmName="ScaleOut-PRO",
+            AlarmName="ScaleOut-PRO-New",
             MetricName="OnLineCount",
             Namespace="UserCount",
             Dimensions=[MetricDimension(

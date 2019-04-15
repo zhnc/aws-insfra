@@ -79,7 +79,7 @@ def main():
     smRdpServerAutoScaling = SMRdpServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
     for res in smRdpServerAutoScaling.values():
         template.add_resource(res)
-
+        
     haPROServerAutoScaling = HAPROServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
     for res in haPROServerAutoScaling.values():
         template.add_resource(res)
@@ -94,14 +94,17 @@ def main():
     for res in appServerAutoScaling.values():
         template.add_resource(res)
 
-        
-    webServerAutoScaling = WebServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
-    for res in webServerAutoScaling.values():
-        template.add_resource(res)
-        
     mssql = MsSql(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
     for res in mssql.values():
         template.add_resource(res)
+
+    # below not used.
+
+    # webServerAutoScaling = WebServerAutoScaling(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
+    # for res in webServerAutoScaling.values():
+    #     template.add_resource(res)
+        
+  
         
     # elb = LoadBalancer(vpc=vpc, parameters=parameters, securitygroup= securityGroup)
     # for res in elb.values():

@@ -269,3 +269,9 @@ class Parameters(MagicDict):
             Default="ami-075fd9adb791069d1"
         )
 
+        self.kisHAProxyEIPLambda = Parameter(
+            "kisHAProxyEIP",
+            Type="String",
+            # Default='arn:aws-cn:lambda:cn-northwest-1:xxxx:function:kis-HAProxy-EIP'
+        )
+

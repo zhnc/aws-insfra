@@ -28,5 +28,5 @@ class MsSql(MagicDict):
                                " MsSql Servers"]),
                 AutoSnapshot='1'
             ),
-            PrivateIpAddress='10.215.3.130'
+            PrivateIpAddress='10.215.3.135'
         )

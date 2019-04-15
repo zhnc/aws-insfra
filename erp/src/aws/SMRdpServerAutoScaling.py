@@ -164,7 +164,7 @@ class SMRdpServerAutoScaling(MagicDict):
             "smOutAlarm",
             MetricName = "OnLineCount",
             Namespace = "UserCount",
-            AlarmName = "ScaleOut-SM",
+            AlarmName = "ScaleOut-SM-New",
             Dimensions = [
                 MetricDimension(
                     Name = 'produceId',

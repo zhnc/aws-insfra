@@ -22,27 +22,27 @@ class WebServerAutoScaling(MagicDict):
         super(WebServerAutoScaling, self).__init__()
 
         self.loadBalancer = LoadBalancer(
-            "WebLoadBalancer01",
+            "WebLoadBalancer03",
 
             Subnets=[Ref(vpc.public_subnet_1),
                      Ref(vpc.public_subnet_2)],
             SecurityGroups=[
                 Ref(securitygroup.web_public_security_group)],
-            Name="web-lb-01",
+            Name="web-lb-03",
             Scheme="internet-facing",
             Type="application",
 
         )
 
         self.targetGroup = TargetGroup(
-            "WebTargetGroupApi01",
+            "WebTargetGroupApi03",
             HealthCheckIntervalSeconds="30",
             HealthCheckProtocol="HTTP",
             HealthCheckTimeoutSeconds="10",
             HealthyThresholdCount="4",
             Matcher=Matcher(
                 HttpCode="200"),
-            Name="WebTarget01",
+            Name="WebTarget02",
             Port=Ref(parameters.web_port),
             Protocol="HTTP",
             UnhealthyThresholdCount="3",

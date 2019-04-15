@@ -55,21 +55,21 @@ class AppServerAutoScaling(MagicDict):
             # CrossZone=True,
             # SecurityGroups=[
             #     Ref(securitygroup.web_public_security_group)],
-            Name="app-iis-nlb",
+            Name="app-iis-nlb-03",
             Scheme="internet-facing",
             Type="network",
             # LoadBalancerPort=80
         )
 
         self.targetGroup = TargetGroup(
-            "AppIISTargetGroupApi",
+            "AppIISTargetGroupApi02",
             # HealthCheckIntervalSeconds="30",
             # HealthCheckProtocol="HTTP",
             # HealthCheckTimeoutSeconds="10",
             # HealthyThresholdCount="4",
             # Matcher=Matcher(
             #     HttpCode="200"),
-            Name="AppApiTarget",
+            Name="AppApiTarget03",
             Port=Ref(parameters.app_api_port),
             Protocol="TCP",
             # Targets=[elb.TargetDescription(

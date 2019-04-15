@@ -165,7 +165,7 @@ class UERdpServerAutoScaling(MagicDict):
 
         self.outAlarm = Alarm(
             "ueOutAlarm",
-            AlarmName="ScaleOut-UE",
+            AlarmName="ScaleOut-UE-New",
             MetricName="OnLineCount",
             Namespace="UserCount",
             Dimensions=[MetricDimension(

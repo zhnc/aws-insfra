@@ -82,33 +82,33 @@ class HASMServerAutoScaling(MagicDict):
             )
         )
 
-        self.rule = Rule(
-            "HASM",
-            Name="HASMEIP",
-            Description = "HA EIP",
-            Targets=[Target(
-                "smEipLambda",
-                Arn = "arn:aws-cn:lambda:cn-northwest-1:926748824711:function:kis-HAProxy-EIP",
-                Id = "HASMEIP"
-            )],
-            EventPattern = {
-                "source": [
-                    "aws.autoscaling"
-                    ],
-                "detail-type": [
-                    "EC2 Instance Launch Successful"
-                ],
-                "detail": {
-                    "AutoScalingGroupName": [
-                        Ref(self.AutoscalingGroup)
-                    ]}
-                }
-        )
+        # self.rule = Rule(
+        #     "HASM",
+        #     Name="HASMEIP",
+        #     Description = "HA EIP",
+        #     Targets=[Target(
+        #         "smEipLambda",
+        #         Arn = Ref(parameters.kisHAProxyEIPLambda),
+        #         Id = "HASMEIP"
+        #     )],
+        #     EventPattern = {
+        #         "source": [
+        #             "aws.autoscaling"
+        #             ],
+        #         "detail-type": [
+        #             "EC2 Instance Launch Successful"
+        #         ],
+        #         "detail": {
+        #             "AutoScalingGroupName": [
+        #                 Ref(self.AutoscalingGroup)
+        #             ]}
+        #         }
+        # )
 
-        self.Permission = Permission(
-            "smlambda",
-            Action="lambda:InvokeFunction",
-            FunctionName = "arn:aws-cn:lambda:cn-northwest-1:926748824711:function:kis-HAProxy-EIP",
-            Principal = "events.amazonaws.com",
-            SourceArn = GetAtt(self.rule, 'Arn')
-        )
+        # self.Permission = Permission(
+        #     "smlambda",
+        #     Action="lambda:InvokeFunction",
+        #     FunctionName = Ref(parameters.kisHAProxyEIPLambda),
+        #     Principal = "events.amazonaws.com",
+        #     SourceArn = GetAtt(self.rule, 'Arn')
+        # )
