@@ -1,0 +1,949 @@
+Description: Example Server
+Mappings:
+  AMIMap:
+    cn-northwest-1:
+      AMI: ami-09478b31d8343756c
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Required parameters.
+        Parameters:
+          - DBPassword
+          - KeyPair
+      - Label:
+          default: 'Advanced: Database and instance'
+        Parameters:
+          - DBInstanceType
+          - DBStorageSize
+          - DBBackupRetention
+          - EC2InstanceType
+    ParameterLabels:
+      DBBackupRetention:
+        default: How long to keep backups (advanced)
+      DBInstanceType:
+        default: Database instance class (advanced)
+      DBPassword:
+        default: Choose a database password
+      DBStorageSize:
+        default: Database storage (advanced)
+      EC2InstanceType:
+        default: Instance class (advanced)
+      KeyPair:
+        default: Choose a key pair
+Parameters:
+  ApiServerPort:
+    Default: '8288'
+    Description: TCP/IP port of the api server
+    Type: String
+  AppServerEC2InstanceType:
+    AllowedValues:
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+    Default: m4.xlarge
+    Description: Instance class for app server. Defines amount of CPU and Memory.
+    Type: String
+  AppServerImageId:
+    Default: ami-016be4a8a848bd6b5
+    Type: String
+  AppServerKeyPair:
+    Description: Key pair to use to login to your app server
+    Type: AWS::EC2::KeyPair::KeyName
+  HAPROServerImageId:
+    Default: ami-075fd9adb791069d1
+    Type: String
+  HASMServerImageId:
+    Default: ami-075fd9adb791069d1
+    Type: String
+  HAServerEC2InstanceType:
+    AllowedValues:
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+    Default: c4.xlarge
+    Description: Instance class for HA server. Defines amount of CPU and Memory.
+    Type: String
+  HAUEServerImageId:
+    Default: ami-075fd9adb791069d1
+    Type: String
+  MSSqlKeyPair:
+    Description: Key pair to use to login to your mssql server
+    Type: AWS::EC2::KeyPair::KeyName
+  MaxScaleCapacity:
+    Default: '2'
+    Description: Number of Max RDP servers to run
+    Type: String
+  MinScaleCapacity:
+    Default: '1'
+    Description: Number of Min servers to run
+    Type: String
+  MssqlEc2InstanceType:
+    AllowedValues:
+      - r4.large
+      - r4.xlarge
+      - r4.2xlarge
+      - r4.4xlarge
+      - r4.8xlarge
+    Default: r4.2xlarge
+    Description: Instance class for rdp server. Defines amount of CPU and Memory.
+    Type: String
+  MssqlServerImageId:
+    Default: ami-00dfdd29975c62159
+    Type: String
+  ProRdpServerEC2InstanceType:
+    AllowedValues:
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+    Default: c4.2xlarge
+    Description: Instance class for Pro rdp server. Defines amount of CPU and Memory.
+    Type: String
+  ProRdpServerImageId:
+    Default: ami-00da8711a85fee102
+    Type: String
+  RdpServerKeyPair:
+    Description: Key pair to use to login to your Rdp server
+    Type: AWS::EC2::KeyPair::KeyName
+  SMRdpServerImageId:
+    Default: ami-01945d96d0338c56c
+    Type: String
+  ScaleCapacity:
+    Default: '1'
+    Description: Number of servers to run
+    Type: String
+  SmRdpServerEC2InstanceType:
+    AllowedValues:
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+    Default: c4.2xlarge
+    Description: Instance class for SM rdp server. Defines amount of CPU and Memory.
+    Type: String
+  UERdpServerImageId:
+    Default: ami-0d9d0dae54934a0c8
+    Type: String
+  UeRdpServerEC2InstanceType:
+    AllowedValues:
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+    Default: c4.2xlarge
+    Description: Instance class for UE rdp server. Defines amount of CPU and Memory.
+    Type: String
+  WebPortalServerImageId:
+    Default: ami-0ad9b545c3cd28cb8
+    Type: String
+  WebServerEC2InstanceType:
+    AllowedValues:
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+    Default: m4.xlarge
+    Description: Instance class for Web server. Defines amount of CPU and Memory.
+    Type: String
+  WebServerKeyPair:
+    Description: Key pair to use to login to your web server
+    Type: AWS::EC2::KeyPair::KeyName
+  webServerPort:
+    Default: '8088'
+    Description: TCP/IP port of the web server
+    Type: String
+Resources:
+  AppDBSecurityGroup:
+    Properties:
+      GroupDescription: App DB security group
+      SecurityGroupEgress:
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '-1'
+          IpProtocol: '-1'
+          ToPort: '-1'
+      SecurityGroupIngress:
+        - FromPort: '1433'
+          IpProtocol: tcp
+          SourceSecurityGroupId: !Ref 'AppWebInstanceSecurityGroup'
+          ToPort: '1433'
+        - FromPort: '1433'
+          IpProtocol: tcp
+          SourceSecurityGroupId: !Ref 'AppRdpInstanceSecurityGroup'
+          ToPort: '1433'
+        - FromPort: '55555'
+          IpProtocol: tcp
+          SourceSecurityGroupId: !Ref 'AppWebInstanceSecurityGroup'
+          ToPort: '55555'
+        - FromPort: '55555'
+          IpProtocol: tcp
+          SourceSecurityGroupId: !Ref 'AppRdpInstanceSecurityGroup'
+          ToPort: '55555'
+        - FromPort: '-1'
+          IpProtocol: '-1'
+          SourceSecurityGroupId: !Ref 'OpsSecurityGroup'
+          ToPort: '-1'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - ' App DB security group'
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::SecurityGroup
+  AppRdpInstanceSecurityGroup:
+    Properties:
+      GroupDescription: App RDP Instance security group
+      SecurityGroupEgress:
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '-1'
+          IpProtocol: '-1'
+          ToPort: '-1'
+      SecurityGroupIngress:
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '8696'
+          IpProtocol: tcp
+          ToPort: '8696'
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '5696'
+          IpProtocol: tcp
+          ToPort: '5696'
+        - FromPort: '-1'
+          IpProtocol: '-1'
+          SourceSecurityGroupId: !Ref 'OpsSecurityGroup'
+          ToPort: '-1'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - ' App RDP instance security group'
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::SecurityGroup
+  AppWebInstanceSecurityGroup:
+    Properties:
+      GroupDescription: App Web Instance security group
+      SecurityGroupEgress:
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '-1'
+          IpProtocol: '-1'
+          ToPort: '-1'
+      SecurityGroupIngress:
+        - FromPort: '-1'
+          IpProtocol: '-1'
+          SourceSecurityGroupId: !Ref 'AppWebPrivateLoadBalanceSecurityGroup'
+          ToPort: '-1'
+        - FromPort: '-1'
+          IpProtocol: '-1'
+          SourceSecurityGroupId: !Ref 'OpsSecurityGroup'
+          ToPort: '-1'
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '8288'
+          IpProtocol: tcp
+          ToPort: '8288'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - ' App Web instance security group'
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::SecurityGroup
+  AppWebPrivateLoadBalanceSecurityGroup:
+    Properties:
+      GroupDescription: App web private load balance security group
+      SecurityGroupEgress:
+        - CidrIp: '0.0.0.0/0'
+          FromPort: 0
+          IpProtocol: '-1'
+          ToPort: 65535
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - ' App web private load balance security group'
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::SecurityGroup
+  HAProxyInstanceSecurityGroup:
+    Properties:
+      GroupDescription: HAProxy security group
+      SecurityGroupEgress:
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '-1'
+          IpProtocol: '-1'
+          ToPort: '-1'
+      SecurityGroupIngress:
+        - FromPort: '-1'
+          IpProtocol: '-1'
+          SourceSecurityGroupId: !Ref 'OpsSecurityGroup'
+          ToPort: '-1'
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '8696'
+          IpProtocol: tcp
+          ToPort: '8696'
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '5696'
+          IpProtocol: tcp
+          ToPort: '5696'
+        - CidrIp: 219.133.170.0/24
+          FromPort: '8088'
+          IpProtocol: tcp
+          ToPort: '8088'
+        - CidrIp: 219.133.170.0/24
+          FromPort: '22'
+          IpProtocol: tcp
+          ToPort: '22'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - ' HAProxy instance security group'
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::SecurityGroup
+  HASubnet1:
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      CidrBlock: 10.215.0.224/27
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -ha-subnet-1
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  HASubnet1RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PublicRouteTable'
+      SubnetId: !Ref 'HASubnet1'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  HASubnet2:
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ''
+      CidrBlock: 10.215.1.224/27
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -ha-subnet-2
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  HASubnet2RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PublicRouteTable'
+      SubnetId: !Ref 'HASubnet2'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  InternetGateway:
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -internet-gateway
+    Type: AWS::EC2::InternetGateway
+  InternetGatewayAttachment:
+    Properties:
+      InternetGatewayId: !Ref 'InternetGateway'
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::VPCGatewayAttachment
+  Nat:
+    DependsOn: NatEip
+    Properties:
+      AllocationId: !GetAtt 'NatEip.AllocationId'
+      SubnetId: !Ref 'PublicSubnet1'
+    Type: AWS::EC2::NatGateway
+  NatEip:
+    Properties:
+      Domain: vpc
+    Type: AWS::EC2::EIP
+  NatRoute:
+    Properties:
+      DestinationCidrBlock: '0.0.0.0/0'
+      NatGatewayId: !Ref 'Nat'
+      RouteTableId: !Ref 'PrivateRouteTable'
+    Type: AWS::EC2::Route
+  NatRoute3:
+    Properties:
+      DestinationCidrBlock: '0.0.0.0/0'
+      NatGatewayId: !Ref 'Nat'
+      RouteTableId: !Ref 'PrivateWebRouteTable'
+    Type: AWS::EC2::Route
+  OpsSecurityGroup:
+    Properties:
+      GroupDescription: Ops security group
+      SecurityGroupEgress:
+        - CidrIp: '0.0.0.0/0'
+          FromPort: 0
+          IpProtocol: '-1'
+          ToPort: 65535
+      SecurityGroupIngress:
+        - CidrIp: '0.0.0.0/0'
+          FromPort: 3389
+          IpProtocol: tcp
+          ToPort: 3389
+        - CidrIp: '0.0.0.0/0'
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - ' ops security group'
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::SecurityGroup
+  PrivateNetworkACL:
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -private-nacl
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::NetworkAcl
+  PrivateNetworkACL3:
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -private-nacl-3
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::NetworkAcl
+  PrivateNetworkAclEntryIn:
+    Properties:
+      CidrBlock: '0.0.0.0/0'
+      Egress: 'false'
+      NetworkAclId: !Ref 'PrivateNetworkACL'
+      Protocol: -1
+      RuleAction: allow
+      RuleNumber: 100
+    Type: AWS::EC2::NetworkAclEntry
+  PrivateNetworkAclEntryIn3:
+    Properties:
+      CidrBlock: '0.0.0.0/0'
+      Egress: 'false'
+      NetworkAclId: !Ref 'PrivateNetworkACL3'
+      Protocol: -1
+      RuleAction: allow
+      RuleNumber: 100
+    Type: AWS::EC2::NetworkAclEntry
+  PrivateNetworkAclEntryOut:
+    Properties:
+      CidrBlock: '0.0.0.0/0'
+      Egress: 'true'
+      NetworkAclId: !Ref 'PrivateNetworkACL'
+      Protocol: -1
+      RuleAction: allow
+      RuleNumber: 100
+    Type: AWS::EC2::NetworkAclEntry
+  PrivateNetworkAclEntryOut3:
+    Properties:
+      CidrBlock: '0.0.0.0/0'
+      Egress: 'true'
+      NetworkAclId: !Ref 'PrivateNetworkACL3'
+      Protocol: -1
+      RuleAction: allow
+      RuleNumber: 100
+    Type: AWS::EC2::NetworkAclEntry
+  PrivateRouteTable:
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - private-route-table
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::RouteTable
+  PrivateSubnet1:
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      CidrBlock: 10.215.3.128/26
+      MapPublicIpOnLaunch: 'false'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -private-subnet-1
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PrivateSubnet1NetworkAclAssociation:
+    Properties:
+      NetworkAclId: !Ref 'PrivateNetworkACL'
+      SubnetId: !Ref 'PrivateSubnet1'
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+  PrivateSubnet1RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateRouteTable'
+      SubnetId: !Ref 'PrivateSubnet1'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PrivateSubnet2:
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ''
+      CidrBlock: 10.215.4.128/26
+      MapPublicIpOnLaunch: 'false'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -private-subnet-2
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PrivateSubnet2NetworkAclAssociation:
+    Properties:
+      NetworkAclId: !Ref 'PrivateNetworkACL'
+      SubnetId: !Ref 'PrivateSubnet2'
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+  PrivateSubnet2RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateRouteTable'
+      SubnetId: !Ref 'PrivateSubnet2'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PrivateSubnet3:
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      CidrBlock: 10.215.3.0/26
+      MapPublicIpOnLaunch: 'false'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -private-subnet-3
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PrivateSubnet3NetworkAclAssociation:
+    Properties:
+      NetworkAclId: !Ref 'PrivateNetworkACL3'
+      SubnetId: !Ref 'PrivateSubnet3'
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+  PrivateSubnet3RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateWebRouteTable'
+      SubnetId: !Ref 'PrivateSubnet3'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PrivateSubnet4:
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ''
+      CidrBlock: 10.215.4.0/26
+      MapPublicIpOnLaunch: 'false'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -private-subnet-4
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PrivateSubnet4NetworkAclAssociation:
+    Properties:
+      NetworkAclId: !Ref 'PrivateNetworkACL3'
+      SubnetId: !Ref 'PrivateSubnet4'
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+  PrivateSubnet4RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateWebRouteTable'
+      SubnetId: !Ref 'PrivateSubnet4'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PrivateWebRouteTable:
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - private-web-route-table
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::RouteTable
+  PublicRouteTable:
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - public-route-table
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::RouteTable
+  PublicSubnet1:
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      CidrBlock: 10.215.1.32/27
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -public-subnet-1
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PublicSubnet1RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PublicRouteTable'
+      SubnetId: !Ref 'PublicSubnet1'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PublicSubnet2:
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ''
+      CidrBlock: 10.215.0.32/27
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -public-subnet-2
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PublicSubnet2RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PublicRouteTable'
+      SubnetId: !Ref 'PublicSubnet2'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PublicSubnet3:
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      CidrBlock: 10.215.1.64/27
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -rdp-subnet-b-1
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PublicSubnet3RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateRouteTable'
+      SubnetId: !Ref 'PublicSubnet3'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PublicSubnet4:
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ''
+      CidrBlock: 10.215.0.64/27
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -rdp-subnet-b-2
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PublicSubnet4RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateRouteTable'
+      SubnetId: !Ref 'PublicSubnet4'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PublicSubnet5:
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      CidrBlock: 10.215.1.96/27
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -rdp-subnet-c-1
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PublicSubnet5RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateRouteTable'
+      SubnetId: !Ref 'PublicSubnet5'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PublicSubnet6:
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ''
+      CidrBlock: 10.215.0.96/27
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -rdp-subnet-c-2
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PublicSubnet6RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateRouteTable'
+      SubnetId: !Ref 'PublicSubnet6'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PublicSubnet7:
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      CidrBlock: 10.215.1.128/27
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -rdp-subnet-a-1
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PublicSubnet7RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateRouteTable'
+      SubnetId: !Ref 'PublicSubnet7'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PublicSubnet8:
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ''
+      CidrBlock: 10.215.0.128/27
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - -rdp-subnet-a-2
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::Subnet
+  PublicSubnet8RouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PrivateRouteTable'
+      SubnetId: !Ref 'PublicSubnet8'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  RouteToInternet:
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref 'InternetGateway'
+      RouteTableId: !Ref 'PublicRouteTable'
+    Type: AWS::EC2::Route
+  VPC:
+    Properties:
+      CidrBlock: 10.215.0.0/21
+      EnableDnsHostnames: 'true'
+      EnableDnsSupport: 'true'
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
+    Type: AWS::EC2::VPC
+  VPCS3Endpoint:
+    Properties:
+      RouteTableIds:
+        - !Ref 'PublicRouteTable'
+        - !Ref 'PrivateRouteTable'
+      ServiceName: !Join
+        - ''
+        - - com.amazonaws.
+          - !Ref 'AWS::Region'
+          - .s3
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::VPCEndpoint
+  WebDBSecurityGroup:
+    Properties:
+      GroupDescription: Web DB security group
+      SecurityGroupEgress:
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '-1'
+          IpProtocol: '-1'
+          ToPort: '-1'
+      SecurityGroupIngress:
+        - FromPort: '3306'
+          IpProtocol: tcp
+          SourceSecurityGroupId: !Ref 'WebInstanceSecurityGroup'
+          ToPort: '3306'
+        - FromPort: '-1'
+          IpProtocol: '-1'
+          SourceSecurityGroupId: !Ref 'OpsSecurityGroup'
+          ToPort: '-1'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - ' web DB security group'
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::SecurityGroup
+  WebInstanceSecurityGroup:
+    Properties:
+      GroupDescription: Web Instance security group
+      SecurityGroupEgress:
+        - CidrIp: '0.0.0.0/0'
+          FromPort: '-1'
+          IpProtocol: '-1'
+          ToPort: '-1'
+      SecurityGroupIngress:
+        - FromPort: '-1'
+          IpProtocol: '-1'
+          SourceSecurityGroupId: !Ref 'WebPublicLoadBalanceSecurityGroup'
+          ToPort: '-1'
+        - FromPort: '-1'
+          IpProtocol: '-1'
+          SourceSecurityGroupId: !Ref 'OpsSecurityGroup'
+          ToPort: '-1'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - ' web instance security group'
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::SecurityGroup
+  WebPublicLoadBalanceSecurityGroup:
+    Properties:
+      GroupDescription: web public load balance security group
+      SecurityGroupEgress:
+        - CidrIp: '0.0.0.0/0'
+          FromPort: 0
+          IpProtocol: '-1'
+          ToPort: 65535
+      SecurityGroupIngress:
+        - CidrIp: '0.0.0.0/0'
+          FromPort: 80
+          IpProtocol: tcp
+          ToPort: 80
+        - CidrIp: '0.0.0.0/0'
+          FromPort: 8088
+          IpProtocol: tcp
+          ToPort: 8088
+        - CidrIp: '0.0.0.0/0'
+          FromPort: 3306
+          IpProtocol: tcp
+          ToPort: 3306
+        - CidrIp: '0.0.0.0/0'
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+              - ' web public load balance security group'
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::SecurityGroup
+  appApicSecurityGroupIngressRule01:
+    DependsOn: OpsSecurityGroup
+    Properties:
+      FromPort: '-1'
+      GroupId: !Ref 'AppWebPrivateLoadBalanceSecurityGroup'
+      IpProtocol: '-1'
+      SourceSecurityGroupId: !Ref 'OpsSecurityGroup'
+      ToPort: '-1'
+    Type: AWS::EC2::SecurityGroupIngress
+  appApicSecurityGroupIngressRule02:
+    DependsOn: WebInstanceSecurityGroup
+    Properties:
+      FromPort: '-1'
+      GroupId: !Ref 'AppWebPrivateLoadBalanceSecurityGroup'
+      IpProtocol: '-1'
+      SourceSecurityGroupId: !Ref 'WebInstanceSecurityGroup'
+      ToPort: '-1'
+    Type: AWS::EC2::SecurityGroupIngress
+  appRdpHAInstanceSecurityGroupIngressRule:
+    DependsOn: HAProxyInstanceSecurityGroup
+    Properties:
+      FromPort: '-1'
+      GroupId: !Ref 'AppRdpInstanceSecurityGroup'
+      IpProtocol: '-1'
+      SourceSecurityGroupId: !Ref 'HAProxyInstanceSecurityGroup'
+      ToPort: '-1'
+    Type: AWS::EC2::SecurityGroupIngress
+  appRdpInstanceSecurityGroupIngressRule:
+    DependsOn: AppRdpInstanceSecurityGroup
+    Properties:
+      FromPort: '-1'
+      GroupId: !Ref 'AppRdpInstanceSecurityGroup'
+      IpProtocol: '-1'
+      SourceSecurityGroupId: !Ref 'AppRdpInstanceSecurityGroup'
+      ToPort: '-1'
+    Type: AWS::EC2::SecurityGroupIngress
+  appWebInstanceSecurityGroupIngressRule:
+    DependsOn: AppWebInstanceSecurityGroup
+    Properties:
+      FromPort: '-1'
+      GroupId: !Ref 'AppWebInstanceSecurityGroup'
+      IpProtocol: '-1'
+      SourceSecurityGroupId: !Ref 'AppWebInstanceSecurityGroup'
+      ToPort: '-1'
+    Type: AWS::EC2::SecurityGroupIngress
+  appWebPrivateLbSecurityGroupIngressRule03:
+    DependsOn: AppRdpInstanceSecurityGroup
+    Properties:
+      FromPort: '-1'
+      GroupId: !Ref 'AppWebPrivateLoadBalanceSecurityGroup'
+      IpProtocol: '-1'
+      SourceSecurityGroupId: !Ref 'AppRdpInstanceSecurityGroup'
+      ToPort: '-1'
+    Type: AWS::EC2::SecurityGroupIngress
+  webInstanceSecurityGroupIngressRule:
+    DependsOn: WebInstanceSecurityGroup
+    Properties:
+      FromPort: '-1'
+      GroupId: !Ref 'WebInstanceSecurityGroup'
+      IpProtocol: '-1'
+      SourceSecurityGroupId: !Ref 'WebInstanceSecurityGroup'
+      ToPort: '-1'
+    Type: AWS::EC2::SecurityGroupIngress
+  webPublicSecurityGroupIngressRule:
+    DependsOn: WebInstanceSecurityGroup
+    Properties:
+      FromPort: '-1'
+      GroupId: !Ref 'WebPublicLoadBalanceSecurityGroup'
+      IpProtocol: '-1'
+      SourceSecurityGroupId: !Ref 'WebInstanceSecurityGroup'
+      ToPort: '-1'
+    Type: AWS::EC2::SecurityGroupIngress
+
